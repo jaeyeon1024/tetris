@@ -130,10 +130,10 @@ class Board(QWidget):
 
         observer = AttackObserver()
 
-        self.game = Tetirs(self.p1_board,self.p1_next,self.p1_pocket,self.height(), observer) # 수정 해야 하는 부분
+        self.game = Tetirs(self.p1_board,self.p1_next,self.p1_pocket,self.height(), observer,option) # 수정 해야 하는 부분
         
         if option != 1:
-            self.game2 = Tetirs(self.p2_board,self.p2_next,self.p2_pocket,self.height(), observer) # 수정 해야 하는 부분
+            self.game2 = Tetirs(self.p2_board,self.p2_next,self.p2_pocket,self.height(), observer,option) # 수정 해야 하는 부분
 
     def board_resize(self):
         self.p1_board.setGeometry(0, 0, (self.p1_board.width()//10)*10, self.height())
@@ -182,16 +182,23 @@ class Board(QWidget):
             self.game.update()
 
 
-        elif key == Qt.Key_C:
+        elif key == Qt.Key_C and not self.game.use_pocket:
+            tmp = self.game.cur_shape.get_pocket()
+            tmp2 = self.game.cur_shape.get_pocket_inx()
+            
             self.game.cur_shape.set_pocket(self.game.cur_shape.get_cur_shape())
+            self.game.cur_shape.set_pocket_inx(self.game.cur_shape.get_cur_inx())
             if not self.game.cur_shape.is_pocket:
                 print("pocket is None")
 
                 self.game.finish_down_line = True
+                self.game.cur_shape.is_pocket = True    
                 
             else:
-                tmp = self.game.cur_shape.get_cur_shape()
-                self.game.cur_shape.set_cur_shape(self.game.cur_shape.get_pocket())
+                self.game.cur_shape.set_cur_shape(tmp)
+                self.game.cur_shape.set_cur_inx(tmp2)
+                self.game.cur_shape.cury = 0
+                self.game.use_pocket = True
                 
 
         elif key == Qt.Key_Left and self.option != 1 and self.option != 4:
@@ -212,7 +219,24 @@ class Board(QWidget):
         elif key == Qt.Key_Up and self.option != 1 and self.option != 4:
                 self.game2.rotate()
                 self.game2.update()
+        
+        elif key == Qt.Key_M and not self.game2.use_pocket:
+            tmp = self.game2.cur_shape.get_pocket()
+            tmp2 = self.game2.cur_shape.get_pocket_inx()
+            
+            self.game2.cur_shape.set_pocket(self.game2.cur_shape.get_cur_shape())
+            self.game2.cur_shape.set_pocket_inx(self.game2.cur_shape.get_cur_inx())
+            if not self.game.cur_shape.is_pocket:
+                print("pocket is None")
 
+                self.game2.finish_down_line = True
+                self.game2.cur_shape.is_pocket = True    
+                
+            else:
+                self.game2.cur_shape.set_cur_shape(tmp)
+                self.game2.cur_shape.set_cur_inx(tmp2)
+                self.game2.cur_shape.cury = 0
+                self.game2.use_pocket = True
 
 class AttackObserver:
     def __init__(self) -> None:
@@ -231,8 +255,9 @@ class AttackObserver:
 
 
 class Tetirs(QWidget):
-    def __init__(self,board:QLabel,next_lb:QLabel,pocket_lb:QLabel,height:int, observer:AttackObserver):
+    def __init__(self,board:QLabel,next_lb:QLabel,pocket_lb:QLabel,height:int, observer:AttackObserver,option):
         super().__init__()
+        self.option = option
         self.initUI(board,next_lb,height,pocket_lb)
         
         self.observer = observer
@@ -246,7 +271,7 @@ class Tetirs(QWidget):
         self.next_lb = next_lb
         self.pocket_lb = pocket_lb
         
-        
+        self.use_pocket = False
 
         self.finish_down_line = True # 한줄이 다 내려왔는지 확인하는 변수 
 
@@ -283,14 +308,11 @@ class Tetirs(QWidget):
         self.pocket_pixmap.fill(Qt.white)
         self.pocket_lb.setPixmap(self.pocket_pixmap)
         
-
         self.cur_shape = Shape()
-        
-        
-        
+
         self.update()
         
-        self.timer.start(300, self)
+        self.timer.start(500, self)
         
     def add_board(self):
         self.back_board = [list([-1 for i in range(10)]) for j in range(20)]  # 10*20
@@ -350,7 +372,7 @@ class Tetirs(QWidget):
             
             if self.finish_down_line:
                 self.finish_down_line = False
-
+                self.use_pocket = False
                 
                 self.up_board(self.attack_dmg)
                 self.attack_dmg = 0
@@ -443,7 +465,7 @@ class Tetirs(QWidget):
 
     def delete_line(self):
         self.attack_line_cnt = 0
-        attack_dmg = [0,1,2,3,4]
+        attack_dmg = [0,0,2,3,4]
         for i in self.put_filed:
             if -1 not in i:
                 self.put_filed.remove(i)
@@ -474,7 +496,8 @@ class Tetirs(QWidget):
 
         
     def attack(self,attack_dmg):
-        self.observer.notify_attack(self,attack_dmg)
+        if self.option == 3:
+            self.observer.notify_attack(self,attack_dmg)
     
     def left(self):
         self.cur_shape.curx -= 1
@@ -539,6 +562,7 @@ class Shape:
         self.cur_inx = 0
         self.cur_shape = self.tetro.tetrominoe[self.cur_inx]
         self.next_inx = 0
+        self.pocket_inx = -1
         self.curx = 0
         self.cury = 0
         self.blocks = []
@@ -568,6 +592,9 @@ class Shape:
     def get_cur_inx(self):
         return self.cur_inx
     
+    def set_cur_inx(self,inx):
+        self.cur_inx = inx
+
     def get_blokcs(self):
         return self.blocks
 
@@ -605,8 +632,8 @@ class Shape:
     def set_cur_shape(self,shape):
         self.cur_shape = shape
 
-    def get_next_inx(self):
-        self.cur_inx = self.next_inx
+    def get_next_inx(self):        
+        self.set_cur_inx(self.next_inx)
         self.cur_shape = self.tetro.tetrominoe[self.cur_inx]
         self.get_random_tetro()
         
@@ -624,10 +651,15 @@ class Shape:
     
     def set_pocket(self,shape):
         self.pocket_shpae = shape
-    
+
     def get_pocket(self):
         return self.pocket_shpae
 
+    def set_pocket_inx(self,inx):
+        self.pocket_inx = inx
+    
+    def get_pocket_inx(self):
+        return self.pocket_inx
 
 
 
@@ -636,3 +668,22 @@ if __name__ == "__main__":
     window = MainWindow()
     window.show()
     sys.exit(app.exec())
+
+'''
+
+드롭 만들기
+
+좌 우 드롭 포켓 교체 메소드 만들기
+
+랜덤으로 내리는거 테스트
+
+새로운 레이어 만들어서 그 위에 그리기
+for문 로테이트
+    for문으로 0부터 끝까지 다 돌면서 
+    각 위치의 가중치값 구하기
+가장 높았던 위치의 가중치값을 기준으로
+이동
+
+
+
+'''
