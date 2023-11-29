@@ -153,98 +153,49 @@ class Board(QWidget):
             
             # self.move(self.curX - 1, self.curY)
             
-            if self.game.check_put_block(self.game.cur_shape.curx - 1, self.game.cur_shape.cury, self.game.cur_shape.get_cur_shape()):
-                self.game.left()
-                self.game.draw_falling()
+            self.game.left_move()
                 
 
         elif key == Qt.Key_D:
             # self.move(self.curX + 1, self.curY)
-            if self.game.check_put_block(self.game.cur_shape.curx + 1, self.game.cur_shape.cury, self.game.cur_shape.get_cur_shape()):
-                self.game.right()
-                self.game.draw_falling()
-                
+            self.game.right_move()
 
             # self.tryMove(self.curPiece, self.curX + 1, self.curY)
 
         elif key == Qt.Key_S:
             # self.move(self.curX, self.curY+1)
-            if self.game.check_put_block(self.game.cur_shape.curx, self.game.cur_shape.cury +1, self.game.cur_shape.get_cur_shape()):
-                self.game.down()
-                self.game.draw_falling()
+            self.game.down_move()
                 
             # self.tryMove(self.curPiece.rotateRight(), self.curX, self.curY)
 
         elif key == Qt.Key_W:
-
-
-            self.game.rotate()
-            self.game.update()
+            self.game.rotate_move()
 
 
         elif key == Qt.Key_C and not self.game.use_pocket:
-            tmp = self.game.cur_shape.get_pocket()
-            tmp2 = self.game.cur_shape.get_pocket_inx()
-            
-            self.game.cur_shape.set_pocket(self.game.cur_shape.get_cur_shape())
-            self.game.cur_shape.set_pocket_inx(self.game.cur_shape.get_cur_inx())
-            if not self.game.cur_shape.is_pocket:
-                print("pocket is None")
-
-                self.game.finish_down_line = True
-                self.game.cur_shape.is_pocket = True    
-                
-            else:
-                self.game.cur_shape.set_cur_shape(tmp)
-                self.game.cur_shape.set_cur_inx(tmp2)
-                self.game.cur_shape.cury = 0
-                self.game.use_pocket = True
+            self.game.pocket_move()
                 
         elif key == Qt.Key_V:
             self.game.dropDown()
-            self.game.update()
 
 
         elif key == Qt.Key_Left and self.option != 1 and self.option != 4:
-            if self.game2.check_put_block(self.game2.cur_shape.curx - 1, self.game2.cur_shape.cury, self.game2.cur_shape.get_cur_shape()):
-                self.game2.left()
-                self.game2.draw_falling()
+            self.game2.left_move()
             
         elif key == Qt.Key_Right and self.option != 1 and self.option != 4:
-            if self.game2.check_put_block(self.game2.cur_shape.curx + 1, self.game2.cur_shape.cury, self.game2.cur_shape.get_cur_shape()):
-                self.game2.right()
-                self.game2.draw_falling()
+            self.game2.right_move()
             
         elif key == Qt.Key_Down and self.option != 1 and self.option != 4:
-            if self.game2.check_put_block(self.game2.cur_shape.curx, self.game2.cur_shape.cury +1, self.game2.cur_shape.get_cur_shape()):
-                self.game2.down()
-                self.game2.draw_falling()
+            self.game2.down_move()
                 
         elif key == Qt.Key_Up and self.option != 1 and self.option != 4:
-                self.game2.rotate()
-                self.game2.update()
+            self.game2.rotate_move()
         
         elif key == Qt.Key_N and not self.game2.use_pocket:
-            tmp = self.game2.cur_shape.get_pocket()
-            tmp2 = self.game2.cur_shape.get_pocket_inx()
-            
-            self.game2.cur_shape.set_pocket(self.game2.cur_shape.get_cur_shape())
-            self.game2.cur_shape.set_pocket_inx(self.game2.cur_shape.get_cur_inx())
-            if not self.game.cur_shape.is_pocket:
-                print("pocket is None")
-
-                self.game2.finish_down_line = True
-                self.game2.cur_shape.is_pocket = True    
-                
-            else:
-                self.game2.cur_shape.set_cur_shape(tmp)
-                self.game2.cur_shape.set_cur_inx(tmp2)
-                self.game2.cur_shape.cury = 0
-                self.game2.use_pocket = True
+            self.game2.pocket_move()
 
         elif key == Qt.Key_M:
             self.game2.dropDown()
-            self.game2.update()
 
 class AttackObserver:
     def __init__(self) -> None:
@@ -525,6 +476,45 @@ class Tetirs(QWidget):
         self.cur_shape.cury = dy
         self.draw_falling()
 
+    def left_move(self):
+        if self.check_put_block(self.cur_shape.curx - 1, self.cur_shape.cury, self.cur_shape.get_cur_shape()):
+            self.left()
+            self.draw_falling()
+    
+    def right_move(self):
+        if self.check_put_block(self.cur_shape.curx + 1, self.cur_shape.cury, self.cur_shape.get_cur_shape()):
+            self.right()
+            self.draw_falling()
+    
+    def down_move(self):
+        if self.check_put_block(self.cur_shape.curx, self.cur_shape.cury +1, self.cur_shape.get_cur_shape()):
+            self.down()
+            self.draw_falling()
+
+    def rotate_move(self):
+        self.rotate()
+        self.update()
+
+    def pocket_move(self):
+        tmp = self.cur_shape.get_pocket()
+        tmp2 = self.cur_shape.get_pocket_inx()
+            
+        self.cur_shape.set_pocket(self.cur_shape.get_cur_shape())
+        self.cur_shape.set_pocket_inx(self.cur_shape.get_cur_inx())
+        if not self.cur_shape.is_pocket:
+            print("pocket is None")
+
+            self.finish_down_line = True
+            self.cur_shape.is_pocket = True    
+                
+        else:
+            self.cur_shape.set_cur_shape(tmp)
+            self.cur_shape.set_cur_inx(tmp2)
+            self.cur_shape.cury = 0
+            self.use_pocket = True
+
+
+
 
 class Tetrominoe:
     def __init__(self):
@@ -683,9 +673,9 @@ if __name__ == "__main__":
 
 '''
 
-드롭 만들기
+드롭 만들기 V
 
-좌 우 드롭 포켓 교체 메소드 만들기
+좌 우 드롭 포켓 교체 메소드 만들기 V
 
 랜덤으로 내리는거 테스트
 
