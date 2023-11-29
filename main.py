@@ -154,34 +154,34 @@ class Board(QWidget):
             # self.move(self.curX - 1, self.curY)
             
             if self.game.check_put_block(self.game.cur_shape.curx - 1, self.game.cur_shape.cury, self.game.cur_shape.get_cur_shape()):
-                self.game.move(1,-1,0)
-                self.game.cur_shape.curx -= 1
+                self.game.left()
+                self.game.draw_falling()
+                
 
         elif key == Qt.Key_D:
             # self.move(self.curX + 1, self.curY)
             if self.game.check_put_block(self.game.cur_shape.curx + 1, self.game.cur_shape.cury, self.game.cur_shape.get_cur_shape()):
-                self.game.move(1,1,0)
-                self.game.cur_shape.curx += 1
+                self.game.right()
+                self.game.draw_falling()
+                
 
             # self.tryMove(self.curPiece, self.curX + 1, self.curY)
 
         elif key == Qt.Key_S:
             # self.move(self.curX, self.curY+1)
             if self.game.check_put_block(self.game.cur_shape.curx, self.game.cur_shape.cury +1, self.game.cur_shape.get_cur_shape()):
-                self.game.move(1,0,1)
-                self.game.cur_shape.cury += 1
+                self.game.down()
+                self.game.draw_falling()
+                
             # self.tryMove(self.curPiece.rotateRight(), self.curX, self.curY)
 
         elif key == Qt.Key_W:
-            # self.tryMove(self.curPiece, self.curC, self.curR - 1)
-            if self.game.check_put_block(self.game.cur_shape.curx, self.game.cur_shape.cury, self.game.cur_shape.rotated()):
-                for i in range(self.game.cur_shape.get_cur_max_y(self.game.cur_shape.get_cur_shape())+1):
-                    for j in range(self.game.cur_shape.get_cur_max_x(self.game.cur_shape.get_cur_shape())+1):
-                        if self.game.cur_shape.get_cur_shape()[i][j] != -1:
-                            self.game.list_board[i+self.game.cur_shape.cury][self.game.cur_shape.curx + j] = -1
 
-                self.game.cur_shape.set_cur_shape(self.game.cur_shape.rotated())
-                self.game.update()
+
+            self.game.rotate()
+            self.game.update()
+
+
         elif key == Qt.Key_C:
             self.game.cur_shape.set_pocket(self.game.cur_shape.get_cur_shape())
             if not self.game.cur_shape.is_pocket:
@@ -196,25 +196,21 @@ class Board(QWidget):
 
         elif key == Qt.Key_Left and self.option != 1 and self.option != 4:
             if self.game2.check_put_block(self.game2.cur_shape.curx - 1, self.game2.cur_shape.cury, self.game2.cur_shape.get_cur_shape()):
-                self.game2.move(1,-1,0)
-                self.game2.cur_shape.curx -= 1
+                self.game2.left()
+                self.game2.draw_falling()
             
         elif key == Qt.Key_Right and self.option != 1 and self.option != 4:
             if self.game2.check_put_block(self.game2.cur_shape.curx + 1, self.game2.cur_shape.cury, self.game2.cur_shape.get_cur_shape()):
-                self.game2.move(1,1,0)
-                self.game2.cur_shape.curx += 1
+                self.game2.right()
+                self.game2.draw_falling()
             
         elif key == Qt.Key_Down and self.option != 1 and self.option != 4:
             if self.game2.check_put_block(self.game2.cur_shape.curx, self.game2.cur_shape.cury +1, self.game2.cur_shape.get_cur_shape()):
-                self.game2.move(1,0,1)
-                self.game2.cur_shape.cury += 1
+                self.game2.down()
+                self.game2.draw_falling()
+                
         elif key == Qt.Key_Up and self.option != 1 and self.option != 4:
-            if self.game2.check_put_block(self.game2.cur_shape.curx, self.game2.cur_shape.cury, self.game2.cur_shape.rotated()):
-                for i in range(self.game2.cur_shape.get_cur_max_y(self.game2.cur_shape.get_cur_shape())+1):
-                    for j in range(self.game2.cur_shape.get_cur_max_x(self.game2.cur_shape.get_cur_shape())+1):
-                        if self.game2.cur_shape.get_cur_shape()[i][j] != -1:
-                            self.game2.list_board[i+self.game2.cur_shape.cury][self.game2.cur_shape.curx + j] = -1
-                self.game2.cur_shape.set_cur_shape(self.game2.cur_shape.rotated())
+                self.game2.rotate()
                 self.game2.update()
 
 
@@ -259,9 +255,11 @@ class Tetirs(QWidget):
         self.game_width = 10
         self.game_height = 20
 
-        self.list_board = [list([-1 for i in range(10)]) for j in range(20)]  # 10*20
+        self.back_board = [list([-1 for i in range(10)]) for j in range(20)]  # 10*20
 
         self.put_filed = [list([-1 for i in range(10)]) for j in range(20)]  # 10*20
+
+        self.falling_board = [list([-1 for i in range(10)]) for j in range(20)]  # 10*20
 
         self.start()
         #여기서 start를 쓰레드로 호출
@@ -294,6 +292,16 @@ class Tetirs(QWidget):
         
         self.timer.start(300, self)
         
+    def add_board(self):
+        self.back_board = [list([-1 for i in range(10)]) for j in range(20)]  # 10*20
+        for i in range(self.game_height):
+            for j in range(self.game_width):
+                if self.put_filed[i][j] != -1:
+                    self.back_board[i][j] = self.put_filed[i][j]
+                elif self.falling_board[i][j] != -1:
+                    self.back_board[i][j] = self.falling_board[i][j]
+                else:
+                    self.back_board[i][j] = -1
 
     def update(self) -> None:
         
@@ -303,7 +311,9 @@ class Tetirs(QWidget):
         
         pocket_painter = QPainter(self.pocket_pixmap)
         
-        self.draw_board(self.list_board,painter)
+        self.add_board()
+        
+        self.draw_board(self.back_board,painter)
 
         self.draw_board(self.cur_shape.get_next_shape(),next_painter,4,4,8)
 
@@ -331,11 +341,8 @@ class Tetirs(QWidget):
 
         painter.end()
     
-    def cur_shape_blanks(self):
-        for i in range(self.cur_shape.get_cur_max_y(self.cur_shape.get_cur_shape())+1):
-            for j in range(self.cur_shape.get_cur_max_x(self.cur_shape.get_cur_shape())+1):
-                if self.cur_shape.get_cur_shape()[i][j] != -1:
-                    self.list_board[i+self.cur_shape.cury][self.cur_shape.curx + j] = -1
+    
+        
 
     def timerEvent(self, event):
 
@@ -361,6 +368,17 @@ class Tetirs(QWidget):
         self.attack_dmg = atk_dmg
         
 
+    def draw_falling(self):
+        self.falling_board_clear()
+        for i in range(self.cur_shape.get_cur_max_y(self.cur_shape.get_cur_shape())+1):
+            for j in range(self.cur_shape.get_cur_max_x(self.cur_shape.get_cur_shape())+1):
+                if self.cur_shape.get_cur_shape()[i][j] != -1:
+                    self.falling_board[i+self.cur_shape.cury][self.cur_shape.curx + j] = self.cur_shape.get_cur_inx()
+
+    def falling_board_clear(self):
+        for i in range(self.game_height):
+            for j in range(self.game_width):
+                self.falling_board[i][j] = -1
 
     def new_block(self):
         
@@ -372,12 +390,12 @@ class Tetirs(QWidget):
             self.game_over()
             return
         
-        for i in range(self.cur_shape.get_cur_max_y(self.cur_shape.get_cur_shape())+1):
-            for j in range(self.cur_shape.get_cur_max_x(self.cur_shape.get_cur_shape())+1):
-                if self.cur_shape.get_cur_shape()[i][j] != -1:
-                    self.list_board[i][5-(self.cur_shape.get_cur_max_x(self.cur_shape.get_cur_shape())//2) - 1 + j] = self.cur_shape.get_cur_inx()
+
         self.cur_shape.curx = 5-(self.cur_shape.get_cur_max_x(self.cur_shape.get_cur_shape())//2) - 1
         self.cur_shape.cury = 0
+
+        
+        self.draw_falling()
         self.update()
 
     def check_put_block(self,x,y,shape):
@@ -389,6 +407,7 @@ class Tetirs(QWidget):
             return False
         if y+self.cur_shape.get_cur_max_y(shape) >= self.game_height:            
             return False
+        
         for i in range(self.cur_shape.get_cur_max_y(shape),-1,-1):
             for j in range(self.cur_shape.get_cur_max_x(shape),-1,-1):
                 if shape[i][j] != -1:
@@ -398,30 +417,24 @@ class Tetirs(QWidget):
 
         return True
 
-    def move(self,flag,dx=0,dy=0):
+    def put_block(self,flag,dx=0,dy=0):
         for i in range(self.cur_shape.get_cur_max_y(self.cur_shape.get_cur_shape()),-1,-1):
                 for j in range(self.cur_shape.get_cur_max_x(self.cur_shape.get_cur_shape()),-1,-1):
                     if self.cur_shape.get_cur_shape()[i][j] != -1:
-                        if flag == 1:
-                            self.list_board[i+self.cur_shape.cury+dy][self.cur_shape.curx +dx +j] = self.cur_shape.get_cur_inx()
-                            self.list_board[i+self.cur_shape.cury][ self.cur_shape.curx + j] = -1
-                        if flag == 2:
-                            self.list_board[i+self.cur_shape.cury][self.cur_shape.curx + j] = self.cur_shape.get_cur_inx() 
-                            self.put_filed[i+self.cur_shape.cury][self.cur_shape.curx + j] = self.cur_shape.get_cur_inx()
+                        self.put_filed[i+self.cur_shape.cury][self.cur_shape.curx + j] = self.cur_shape.get_cur_inx()
 
                             
 
     def one_line_down(self):
         if not self.check_put_block(self.cur_shape.curx, self.cur_shape.cury+1, self.cur_shape.get_cur_shape()):
-            self.move(2)
+            self.put_block(2)
 
             self.finish_down_line = True
             self.delete_line()
             return
         
-
-        self.move(1,0,1)
-        self.cur_shape.cury += 1
+        self.down()
+        self.draw_falling()
         self.update()
 
     def game_over(self):
@@ -431,11 +444,9 @@ class Tetirs(QWidget):
     def delete_line(self):
         self.attack_line_cnt = 0
         attack_dmg = [0,1,2,3,4]
-        for i in self.list_board:
+        for i in self.put_filed:
             if -1 not in i:
-                self.list_board.remove(i)
                 self.put_filed.remove(i)
-                self.list_board.insert(0,[-1 for i in range(10)])
                 self.put_filed.insert(0,[-1 for i in range(10)])
                 self.attack_line_cnt += 1
             
@@ -447,14 +458,14 @@ class Tetirs(QWidget):
         
         for i in range(attack_dmg):
             
-            if -1 not in self.list_board[i]:
+            if -1 not in self.put_filed[i]:
                 self.game_over()
 
-            del self.list_board[i]
+    
             del self.put_filed[i]
 
             r_int = random.randint(0,9)
-            self.list_board.append([-2  if i is not r_int else -1 for i in range(10)])
+            
             self.put_filed.append([-2 if i is not r_int else -1 for i in range(10) ])
         
         
@@ -464,31 +475,43 @@ class Tetirs(QWidget):
         
     def attack(self,attack_dmg):
         self.observer.notify_attack(self,attack_dmg)
-        
+    
+    def left(self):
+        self.cur_shape.curx -= 1
+    def right(self):
+        self.cur_shape.curx += 1
+    def down(self):
+        self.cur_shape.cury += 1
+    def rotate(self):
+        if self.check_put_block(self.cur_shape.curx, self.cur_shape.cury, self.cur_shape.rotated()):
+            self.cur_shape.set_cur_shape(self.cur_shape.rotated())
+    
+
+
 
 
 
 class Tetrominoe:
     def __init__(self):
         self.tetrominoe = [ # i, o, t, j, L,s,z
-            [[-1,-1,0,-1],
-             [-1,-1,0,-1],
-             [-1,-1,0,-1],
-             [-1,-1,0,-1]],
+            [[0,-1,-1,-1],
+             [0,-1,-1,-1],
+             [0,-1,-1,-1],
+             [0,-1,-1,-1]],
              
-             [[-1,-1,-1,-1],
-             [-1,1,1,-1],
-             [-1,1,1,-1],
+             [[1,1,-1,-1],
+             [1,1,-1,-1],
+             [-1,-1,-1,-1],
              [-1,-1,-1,-1]],
 
-             [[-1,-1,-1,-1],
-             [-1,2,-1,-1],
+             [[-1,2,-1,-1],
              [2,2,2,-1],
+             [-1,-1,-1,-1],
              [-1,-1,-1,-1]],
 
-             [[-1,-1,3,-1],
-             [-1,-1,3,-1],
-             [-1,3,3,-1],
+             [[-1,3,-1,-1],
+             [-1,3,-1,-1],
+             [3,3,-1,-1],
              [-1,-1,-1,-1]],
 
              [[4,-1,-1,-1],
@@ -525,13 +548,21 @@ class Shape:
         self.is_pocket = False
 
     def rotated(self):
-        n = 4 # 행 길이
-        m = 4 # 열 길이 
-        result = [[0] * n for _ in range(m)] # 회전한 결과를 표시하는 배열
-
+        n = max(self.get_cur_max_y(self.cur_shape),self.get_cur_max_x(self.cur_shape))+1 # 행 길이
+        m = n # 열 길이 
+        result = [[0] * m for _ in range(n)] # 회전한 결과를 표시하는 배열
+        
         for i in range(n):
             for j in range(m):
                 result[j][n-i-1] = self.cur_shape[i][j]
+        
+        for i in range(4-m):
+            result.append([-1 for i in range(n)])
+        
+        for i in range(4):
+            for j in range(4-n):
+                result[i].append(-1)
+        
         return result
     
     def get_cur_inx(self):
