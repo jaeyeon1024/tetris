@@ -96,7 +96,7 @@ class Board(QWidget):
 
         self.option = option
 
-        print(self.option)
+        
 
         self.p1_board = QLabel(self)
         self.p1_board.setGeometry(0, 0, int(self.width()*0.4), self.height())
@@ -107,23 +107,33 @@ class Board(QWidget):
         self.p1_next.setStyleSheet("background-color: rgb(255, 255, 255);")
 
         self.p1_pocket = QLabel(self)
-        self.p1_pocket.setGeometry(int(self.width()*0.42), int(self.height()//8 * 4), int(self.width()*0.1), self.height()//8)
+        self.p1_pocket.setGeometry(int(self.width()*0.4), int(self.height()//8 * 4), int(self.width()*0.1), self.height()//8)
+        self.p1_pocket.setStyleSheet("background-color: rgb(255, 255, 255);")
+
 
         self.p2_board = QLabel(self)
         self.p2_board.setGeometry(int(self.width()*0.6), 0, int(self.width()*0.4), self.height())
         self.p2_board.setStyleSheet("background-color: rgb(255, 255, 255);")
-        self.board_resize()
+        
 
         self.p2_next = QLabel(self)
         self.p2_next.setGeometry(int(self.width()*0.46), int(self.height()//8 * 2), int(self.width()*0.1), self.height()//8)
         self.p2_next.setStyleSheet("background-color: rgb(255, 255, 255);")
 
+        self.p2_pocket = QLabel(self)
+        self.p2_pocket.setGeometry(int(self.width()*0.5), int(self.height()//8 * 4), int(self.width()*0.1), self.height()//8)
+        self.p2_pocket.setStyleSheet("background-color: rgb(255, 255, 255);")
+
+        self.board_resize()
+
         MainWindow.center(self,False)
 
-        self.game = Tetirs(self.p1_board,self.p1_next,self.height()) # 수정 해야 하는 부분
+        observer = AttackObserver()
+
+        self.game = Tetirs(self.p1_board,self.p1_next,self.p1_pocket,self.height(), observer) # 수정 해야 하는 부분
         
         if option != 1:
-            self.game2 = Tetirs(self.p2_board,self.p2_next,self.height()) # 수정 해야 하는 부분
+            self.game2 = Tetirs(self.p2_board,self.p2_next,self.p2_pocket,self.height(), observer) # 수정 해야 하는 부분
 
     def board_resize(self):
         self.p1_board.setGeometry(0, 0, (self.p1_board.width()//10)*10, self.height())
@@ -132,6 +142,8 @@ class Board(QWidget):
         self.p1_next.setGeometry(int(self.width()*0.4), int(self.height()//8 * 2), (self.p1_next.width()//4)*4, self.height()//8)
         self.p2_next.setGeometry(int(self.width()*0.5), int(self.height()//8 * 2), (self.p2_next.width()//4)*4, self.height()//8)
 
+        self.p1_pocket.setGeometry(int(self.width()*0.4), int(self.height()//8 * 4), (self.p1_pocket.width()//4)*4, self.height()//8)
+        self.p2_pocket.setGeometry(int(self.width()*0.5), int(self.height()//8 * 4), (self.p2_pocket.width()//4)*4, self.height()//8)
         
 
     def keyPressEvent(self, event):
@@ -170,23 +182,33 @@ class Board(QWidget):
 
                 self.game.cur_shape.set_cur_shape(self.game.cur_shape.rotated())
                 self.game.update()
+        elif key == Qt.Key_C:
+            self.game.cur_shape.set_pocket(self.game.cur_shape.get_cur_shape())
+            if not self.game.cur_shape.is_pocket:
+                print("pocket is None")
 
+                self.game.finish_down_line = True
+                
+            else:
+                tmp = self.game.cur_shape.get_cur_shape()
+                self.game.cur_shape.set_cur_shape(self.game.cur_shape.get_pocket())
+                
 
-        elif key == Qt.Key_Left:
+        elif key == Qt.Key_Left and self.option != 1 and self.option != 4:
             if self.game2.check_put_block(self.game2.cur_shape.curx - 1, self.game2.cur_shape.cury, self.game2.cur_shape.get_cur_shape()):
                 self.game2.move(1,-1,0)
                 self.game2.cur_shape.curx -= 1
             
-        elif key == Qt.Key_Right:
+        elif key == Qt.Key_Right and self.option != 1 and self.option != 4:
             if self.game2.check_put_block(self.game2.cur_shape.curx + 1, self.game2.cur_shape.cury, self.game2.cur_shape.get_cur_shape()):
                 self.game2.move(1,1,0)
                 self.game2.cur_shape.curx += 1
             
-        elif key == Qt.Key_Down:
+        elif key == Qt.Key_Down and self.option != 1 and self.option != 4:
             if self.game2.check_put_block(self.game2.cur_shape.curx, self.game2.cur_shape.cury +1, self.game2.cur_shape.get_cur_shape()):
                 self.game2.move(1,0,1)
                 self.game2.cur_shape.cury += 1
-        elif key == Qt.Key_Up:
+        elif key == Qt.Key_Up and self.option != 1 and self.option != 4:
             if self.game2.check_put_block(self.game2.cur_shape.curx, self.game2.cur_shape.cury, self.game2.cur_shape.rotated()):
                 for i in range(self.game2.cur_shape.get_cur_max_y(self.game2.cur_shape.get_cur_shape())+1):
                     for j in range(self.game2.cur_shape.get_cur_max_x(self.game2.cur_shape.get_cur_shape())+1):
@@ -196,15 +218,39 @@ class Board(QWidget):
                 self.game2.update()
 
 
-class Tetirs(QWidget):
-    def __init__(self,board:QLabel,next_lb:QLabel,height:int):
-        super().__init__()
-        self.initUI(board,next_lb,height)
+class AttackObserver:
+    def __init__(self) -> None:
+        self.game_list = []
+    
+    def add_game(self,game):
+        self.game_list.append(game)
+    
+    def notify_attack(self, attak_game, attack_dmg):
+        shffled_list = self.game_list[:]
+        random.shuffle(shffled_list)
 
-    def initUI(self,board:QLabel,next_lb:QLabel,height:int):
+        for game in shffled_list:
+            if game != attak_game:
+                game.attacked(attack_dmg)
+
+
+class Tetirs(QWidget):
+    def __init__(self,board:QLabel,next_lb:QLabel,pocket_lb:QLabel,height:int, observer:AttackObserver):
+        super().__init__()
+        self.initUI(board,next_lb,height,pocket_lb)
+        
+        self.observer = observer
+        self.attack_flag = False
+        observer.add_game(self)
+        self.attack_dmg = 0
+
+    def initUI(self,board:QLabel,next_lb:QLabel,height:int,pocket_lb:QLabel):
         self.board = board
         self.c_height = height
         self.next_lb = next_lb
+        self.pocket_lb = pocket_lb
+        
+        
 
         self.finish_down_line = True # 한줄이 다 내려왔는지 확인하는 변수 
 
@@ -235,7 +281,15 @@ class Tetirs(QWidget):
         self.next_pixmap.fill(Qt.white)
         self.next_lb.setPixmap(self.next_pixmap)
 
+        self.pocket_pixmap = QPixmap(self.pocket_lb.width(), self.pocket_lb.height())
+        self.pocket_pixmap.fill(Qt.white)
+        self.pocket_lb.setPixmap(self.pocket_pixmap)
+        
+
         self.cur_shape = Shape()
+        
+        
+        
         self.update()
         
         self.timer.start(300, self)
@@ -247,20 +301,27 @@ class Tetirs(QWidget):
 
         next_painter = QPainter(self.next_pixmap)    
         
+        pocket_painter = QPainter(self.pocket_pixmap)
+        
         self.draw_board(self.list_board,painter)
 
         self.draw_board(self.cur_shape.get_next_shape(),next_painter,4,4,8)
 
+        self.draw_board(self.cur_shape.get_pocket(),pocket_painter,4,4,8)
+
         self.board.setPixmap(self.pixmap)
         self.next_lb.setPixmap(self.next_pixmap)
-        
+        self.pocket_lb.setPixmap(self.pocket_pixmap)
 
 
     def draw_board(self,p_board,painter:QPainter,height=20,width=10,n = 1):
         
         colors = [Qt.red, Qt.green, Qt.blue, Qt.yellow, Qt.cyan, Qt.magenta, Qt.gray, Qt.darkRed, Qt.darkGreen, Qt.darkBlue, Qt.darkYellow, Qt.darkCyan, Qt.darkMagenta, Qt.darkGray, Qt.lightGray]
+        
+        
 
         for i in range(height):
+            
             for j in range(width):
                 if p_board[i][j] != -1:
                     painter.setBrush((colors[p_board[i][j]]))
@@ -269,14 +330,26 @@ class Tetirs(QWidget):
                 painter.drawRect(j*((self.c_height//n)//height), i*((self.c_height//n)//height), ((self.c_height//n)//height), ((self.c_height//n)//height))
 
         painter.end()
-        
+    
+    def cur_shape_blanks(self):
+        for i in range(self.cur_shape.get_cur_max_y(self.cur_shape.get_cur_shape())+1):
+            for j in range(self.cur_shape.get_cur_max_x(self.cur_shape.get_cur_shape())+1):
+                if self.cur_shape.get_cur_shape()[i][j] != -1:
+                    self.list_board[i+self.cur_shape.cury][self.cur_shape.curx + j] = -1
+
     def timerEvent(self, event):
 
         if event.timerId() == self.timer.timerId():
             
             if self.finish_down_line:
                 self.finish_down_line = False
+
+                
+                self.up_board(self.attack_dmg)
+                self.attack_dmg = 0
+
                 self.new_block()
+
             else:
                 self.one_line_down()
                 pass
@@ -284,7 +357,10 @@ class Tetirs(QWidget):
         else:
             super(Board, self).timerEvent(event)
     
-    
+    def attacked(self,atk_dmg=0):
+        self.attack_dmg = atk_dmg
+        
+
 
     def new_block(self):
         
@@ -354,7 +430,7 @@ class Tetirs(QWidget):
 
     def delete_line(self):
         self.attack_line_cnt = 0
-        attack_dmg = [0,0,1,2,4]
+        attack_dmg = [0,1,2,3,4]
         for i in self.list_board:
             if -1 not in i:
                 self.list_board.remove(i)
@@ -363,19 +439,32 @@ class Tetirs(QWidget):
                 self.put_filed.insert(0,[-1 for i in range(10)])
                 self.attack_line_cnt += 1
             
-        #self.attack(attack_dmg[self.attack_line_cnt]) 공격을 한다면
+        self.attack(attack_dmg[self.attack_line_cnt]) 
 
         self.update()
 
-    # def up_board(self):
+    def up_board(self,attack_dmg):
         
-    #     self.list_board.append([-2 for i in range(10) if i is not random.randint(0,9)])
-    #     self.put_filed.append([-2 for i in range(10) if i is not random.randint(0,9)])
+        for i in range(attack_dmg):
+            
+            if -1 not in self.list_board[i]:
+                self.game_over()
 
+            del self.list_board[i]
+            del self.put_filed[i]
+
+            r_int = random.randint(0,9)
+            self.list_board.append([-2  if i is not r_int else -1 for i in range(10)])
+            self.put_filed.append([-2 if i is not r_int else -1 for i in range(10) ])
+        
+        
+
+        self.update()
 
         
-    #     pass
-    
+    def attack(self,attack_dmg):
+        self.observer.notify_attack(self,attack_dmg)
+        
 
 
 
@@ -431,6 +520,9 @@ class Shape:
         self.cury = 0
         self.blocks = []
         self.get_random_tetro()
+        
+        self.pocket_shpae = [list([-1 for i in range(4)]) for j in range(4)]  # 4*4
+        self.is_pocket = False
 
     def rotated(self):
         n = 4 # 행 길이
@@ -498,7 +590,12 @@ class Shape:
             self.next_inx = self.blocks.pop()
         else:
             self.next_inx = self.blocks.pop()
-        
+    
+    def set_pocket(self,shape):
+        self.pocket_shpae = shape
+    
+    def get_pocket(self):
+        return self.pocket_shpae
 
 
 
