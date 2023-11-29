@@ -22,25 +22,25 @@ class MainWindow(QMainWindow):
         #self.label.setGeometry(0, 0, self.width(), 50)
         
         self.setfont()
-
+        
         self.label.setAlignment(Qt.AlignCenter)
         self.label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
         self.p1_btn = QPushButton("1인용", self)
         self.p1_btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.p1_btn.clicked.connect(self.open_new_window)
+        self.p1_btn.clicked.connect(lambda : self.open_new_window(1))
 
         self.p2_btn = QPushButton("2인용", self)
         self.p2_btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.p2_btn.clicked.connect(self.open_new_window)
+        self.p2_btn.clicked.connect(lambda : self.open_new_window(2))
 
         self.vs2_btn = QPushButton("2인 대전", self)
         self.vs2_btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.vs2_btn.clicked.connect(self.open_new_window)
+        self.vs2_btn.clicked.connect(lambda : self.open_new_window(3))
 
         self.com_btn = QPushButton("컴퓨터 대전", self)
         self.com_btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)    
-        self.com_btn.clicked.connect(self.open_new_window)
+        self.com_btn.clicked.connect(lambda : self.open_new_window(4))
 
         self.setting_btn = QPushButton("설정", self)
         self.setting_btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
@@ -80,19 +80,23 @@ class MainWindow(QMainWindow):
 
         self.label.setFont(font)
 
-    def open_new_window(self):
-        self.new_window = Board()
+    def open_new_window(self,option):
+        self.new_window = Board(option)
         
         self.new_window.show()
 
 
 class Board(QWidget):
-    def __init__(self):
+    def __init__(self,option):
         super().__init__()
-        self.initUI()
-    def initUI(self):
+        self.initUI(option)
+    def initUI(self,option):
         self.setWindowTitle("Tetris")
         self.setGeometry(100, 100, 1000, 700)
+
+        self.option = option
+
+        print(self.option)
 
         self.p1_board = QLabel(self)
         self.p1_board.setGeometry(0, 0, int(self.width()*0.4), self.height())
@@ -102,37 +106,38 @@ class Board(QWidget):
         self.p1_next.setGeometry(int(self.width()*0.42), int(self.height()//8 * 2), int(self.width()*0.1), self.height()//8)
         self.p1_next.setStyleSheet("background-color: rgb(255, 255, 255);")
 
-
-
-        self.p2_next = QLabel(self)
-        self.p2_next.setGeometry(int(self.width()*0.46), int(self.height()//8 * 5), int(self.width()*0.1), self.height()//8)
-        self.p2_next.setStyleSheet("background-color: rgb(255, 255, 255);")
+        self.p1_pocket = QLabel(self)
+        self.p1_pocket.setGeometry(int(self.width()*0.42), int(self.height()//8 * 4), int(self.width()*0.1), self.height()//8)
 
         self.p2_board = QLabel(self)
         self.p2_board.setGeometry(int(self.width()*0.6), 0, int(self.width()*0.4), self.height())
         self.p2_board.setStyleSheet("background-color: rgb(255, 255, 255);")
         self.board_resize()
 
+        self.p2_next = QLabel(self)
+        self.p2_next.setGeometry(int(self.width()*0.46), int(self.height()//8 * 2), int(self.width()*0.1), self.height()//8)
+        self.p2_next.setStyleSheet("background-color: rgb(255, 255, 255);")
+
         MainWindow.center(self,False)
 
-        
-
         self.game = Tetirs(self.p1_board,self.p1_next,self.height()) # 수정 해야 하는 부분
-        self.game2 = Tetirs(self.p2_board,self.p2_next,self.height()) # 수정 해야 하는 부분
+        
+        if option != 1:
+            self.game2 = Tetirs(self.p2_board,self.p2_next,self.height()) # 수정 해야 하는 부분
 
     def board_resize(self):
         self.p1_board.setGeometry(0, 0, (self.p1_board.width()//10)*10, self.height())
         self.p2_board.setGeometry(int(self.width()*0.6), 0, (self.p2_board.width()//10)*10, self.height())
 
-        self.p1_next.setGeometry(int(self.width()*0.46), int(self.height()//8 * 2), (self.p1_next.width()//4)*4, self.height()//8)
-        self.p2_next.setGeometry(int(self.width()*0.42), int(self.height()//8 * 5), (self.p2_next.width()//4)*4, self.height()//8)
+        self.p1_next.setGeometry(int(self.width()*0.4), int(self.height()//8 * 2), (self.p1_next.width()//4)*4, self.height()//8)
+        self.p2_next.setGeometry(int(self.width()*0.5), int(self.height()//8 * 2), (self.p2_next.width()//4)*4, self.height()//8)
 
         
 
     def keyPressEvent(self, event):
         key = event.key()
         
-        if key == Qt.Key_Left and not self.game.finish_down_line:
+        if key == Qt.Key_A and not self.game.finish_down_line:
             
             # self.move(self.curX - 1, self.curY)
             
@@ -140,7 +145,7 @@ class Board(QWidget):
                 self.game.move(1,-1,0)
                 self.game.cur_shape.curx -= 1
 
-        elif key == Qt.Key_Right:
+        elif key == Qt.Key_D:
             # self.move(self.curX + 1, self.curY)
             if self.game.check_put_block(self.game.cur_shape.curx + 1, self.game.cur_shape.cury, self.game.cur_shape.get_cur_shape()):
                 self.game.move(1,1,0)
@@ -148,14 +153,14 @@ class Board(QWidget):
 
             # self.tryMove(self.curPiece, self.curX + 1, self.curY)
 
-        elif key == Qt.Key_Down:
+        elif key == Qt.Key_S:
             # self.move(self.curX, self.curY+1)
             if self.game.check_put_block(self.game.cur_shape.curx, self.game.cur_shape.cury +1, self.game.cur_shape.get_cur_shape()):
                 self.game.move(1,0,1)
                 self.game.cur_shape.cury += 1
             # self.tryMove(self.curPiece.rotateRight(), self.curX, self.curY)
 
-        elif key == Qt.Key_Up:
+        elif key == Qt.Key_W:
             # self.tryMove(self.curPiece, self.curC, self.curR - 1)
             if self.game.check_put_block(self.game.cur_shape.curx, self.game.cur_shape.cury, self.game.cur_shape.rotated()):
                 for i in range(self.game.cur_shape.get_cur_max_y(self.game.cur_shape.get_cur_shape())+1):
@@ -165,6 +170,30 @@ class Board(QWidget):
 
                 self.game.cur_shape.set_cur_shape(self.game.cur_shape.rotated())
                 self.game.update()
+
+
+        elif key == Qt.Key_Left:
+            if self.game2.check_put_block(self.game2.cur_shape.curx - 1, self.game2.cur_shape.cury, self.game2.cur_shape.get_cur_shape()):
+                self.game2.move(1,-1,0)
+                self.game2.cur_shape.curx -= 1
+            
+        elif key == Qt.Key_Right:
+            if self.game2.check_put_block(self.game2.cur_shape.curx + 1, self.game2.cur_shape.cury, self.game2.cur_shape.get_cur_shape()):
+                self.game2.move(1,1,0)
+                self.game2.cur_shape.curx += 1
+            
+        elif key == Qt.Key_Down:
+            if self.game2.check_put_block(self.game2.cur_shape.curx, self.game2.cur_shape.cury +1, self.game2.cur_shape.get_cur_shape()):
+                self.game2.move(1,0,1)
+                self.game2.cur_shape.cury += 1
+        elif key == Qt.Key_Up:
+            if self.game2.check_put_block(self.game2.cur_shape.curx, self.game2.cur_shape.cury, self.game2.cur_shape.rotated()):
+                for i in range(self.game2.cur_shape.get_cur_max_y(self.game2.cur_shape.get_cur_shape())+1):
+                    for j in range(self.game2.cur_shape.get_cur_max_x(self.game2.cur_shape.get_cur_shape())+1):
+                        if self.game2.cur_shape.get_cur_shape()[i][j] != -1:
+                            self.game2.list_board[i+self.game2.cur_shape.cury][self.game2.cur_shape.curx + j] = -1
+                self.game2.cur_shape.set_cur_shape(self.game2.cur_shape.rotated())
+                self.game2.update()
 
 
 class Tetirs(QWidget):
@@ -255,10 +284,12 @@ class Tetirs(QWidget):
         else:
             super(Board, self).timerEvent(event)
     
+    
+
     def new_block(self):
         
         self.cur_shape.get_next_inx()
-        print(self.cur_shape.get_blokcs())
+        
         if not self.check_put_block(5-(self.cur_shape.get_cur_max_x(self.cur_shape.get_cur_shape())//2) - 1,0, self.cur_shape.get_cur_shape()):
             print("game over")
             self.timer.stop()
@@ -278,7 +309,7 @@ class Tetirs(QWidget):
         if x+self.cur_shape.get_cur_min_x(shape) < 0 or x+self.cur_shape.get_cur_max_x(shape)>= self.game_width:
             return False
         if y+self.cur_shape.get_cur_min_y(shape) < 0:
-            
+            print("game over")
             return False
         if y+self.cur_shape.get_cur_max_y(shape) >= self.game_height:            
             return False
@@ -322,17 +353,28 @@ class Tetirs(QWidget):
         pass
 
     def delete_line(self):
-        
+        self.attack_line_cnt = 0
+        attack_dmg = [0,0,1,2,4]
         for i in self.list_board:
             if -1 not in i:
                 self.list_board.remove(i)
                 self.put_filed.remove(i)
                 self.list_board.insert(0,[-1 for i in range(10)])
                 self.put_filed.insert(0,[-1 for i in range(10)])
-        
+                self.attack_line_cnt += 1
+            
+        #self.attack(attack_dmg[self.attack_line_cnt]) 공격을 한다면
+
         self.update()
 
-                
+    # def up_board(self):
+        
+    #     self.list_board.append([-2 for i in range(10) if i is not random.randint(0,9)])
+    #     self.put_filed.append([-2 for i in range(10) if i is not random.randint(0,9)])
+
+
+        
+    #     pass
     
 
 
