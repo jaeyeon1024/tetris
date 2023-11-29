@@ -129,11 +129,13 @@ class Board(QWidget):
         MainWindow.center(self,False)
 
         observer = AttackObserver()
+        if self.option == 4:
+            self.game = Tetirs(self.p1_board,self.p1_next,self.p1_pocket,self.height(), observer,self.option-1) # 수정 해야 하는 부분
+        else:
+            self.game = Tetirs(self.p1_board,self.p1_next,self.p1_pocket,self.height(), observer,self.option)
 
-        self.game = Tetirs(self.p1_board,self.p1_next,self.p1_pocket,self.height(), observer,option) # 수정 해야 하는 부분
-        
         if option != 1:
-            self.game2 = Tetirs(self.p2_board,self.p2_next,self.p2_pocket,self.height(), observer,option) # 수정 해야 하는 부분
+            self.game2 = Tetirs(self.p2_board,self.p2_next,self.p2_pocket,self.height(), observer,self.option) # 수정 해야 하는 부분
 
     def board_resize(self):
         self.p1_board.setGeometry(0, 0, (self.p1_board.width()//10)*10, self.height())
@@ -211,18 +213,45 @@ class AttackObserver:
         for game in shffled_list:
             if game != attak_game:
                 game.attacked(attack_dmg)
+                
 
+class Ai_Move:
+    def __init__(self):
+        self.game_width = 10
+        self.game_height = 20
+        
+
+    def instruct_direction(self,game,put_board,falling_board,cur_shape ):
+        self.game = game
+        self.put_board = put_board
+        self.falling_board = falling_board
+        self.cur_shape = cur_shape
+        
+        
+        for i in range(random.randint(0,3)):
+            self.game.rotate_move()
+        for i in range(random.randint(0,3)):
+            self.game.left_move()
+        for i in range(random.randint(0,3)):
+            self.game.right_move()
+        self.game.dropDown()
+        
 
 class Tetirs(QWidget):
     def __init__(self,board:QLabel,next_lb:QLabel,pocket_lb:QLabel,height:int, observer:AttackObserver,option):
         super().__init__()
         self.option = option
+        
+        self.ai_move = Ai_Move()
+
         self.initUI(board,next_lb,height,pocket_lb)
         
         self.observer = observer
         self.attack_flag = False
         observer.add_game(self)
         self.attack_dmg = 0
+
+        
 
     def initUI(self,board:QLabel,next_lb:QLabel,height:int,pocket_lb:QLabel):
         self.board = board
@@ -272,7 +301,8 @@ class Tetirs(QWidget):
         self.update()
         
         self.timer.start(500, self)
-        
+
+    
     def add_board(self):
         self.back_board = [list([-1 for i in range(10)]) for j in range(20)]  # 10*20
         for i in range(self.game_height):
@@ -365,6 +395,8 @@ class Tetirs(QWidget):
         
         self.cur_shape.get_next_inx()
         
+        
+
         if not self.check_put_block(5-(self.cur_shape.get_cur_max_x(self.cur_shape.get_cur_shape())//2) - 1,0, self.cur_shape.get_cur_shape()):
             print("game over")
             self.timer.stop()
@@ -375,7 +407,10 @@ class Tetirs(QWidget):
         self.cur_shape.curx = 5-(self.cur_shape.get_cur_max_x(self.cur_shape.get_cur_shape())//2) - 1
         self.cur_shape.cury = 0
 
-        
+        ## 이 부분에서 ai로 값 전달
+        if self.option == 4:
+            self.ai_move.instruct_direction(self,self.put_filed,self.falling_board,self.cur_shape)
+
         self.draw_falling()
         self.update()
 
@@ -424,7 +459,7 @@ class Tetirs(QWidget):
 
     def delete_line(self):
         self.attack_line_cnt = 0
-        attack_dmg = [0,0,2,3,4]
+        attack_dmg = [0,1,2,3,4]
         for i in self.put_filed:
             if -1 not in i:
                 self.put_filed.remove(i)
@@ -502,7 +537,6 @@ class Tetirs(QWidget):
         self.cur_shape.set_pocket(self.cur_shape.get_cur_shape())
         self.cur_shape.set_pocket_inx(self.cur_shape.get_cur_inx())
         if not self.cur_shape.is_pocket:
-            print("pocket is None")
 
             self.finish_down_line = True
             self.cur_shape.is_pocket = True    
@@ -686,6 +720,6 @@ for문 로테이트
 가장 높았던 위치의 가중치값을 기준으로
 이동
 
-
+종료 했을 때 잘 종료 되게 하기
 
 '''
