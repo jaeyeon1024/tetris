@@ -200,6 +200,10 @@ class Board(QWidget):
                 self.game.cur_shape.cury = 0
                 self.game.use_pocket = True
                 
+        elif key == Qt.Key_V:
+            self.game.dropDown()
+            self.game.update()
+
 
         elif key == Qt.Key_Left and self.option != 1 and self.option != 4:
             if self.game2.check_put_block(self.game2.cur_shape.curx - 1, self.game2.cur_shape.cury, self.game2.cur_shape.get_cur_shape()):
@@ -220,7 +224,7 @@ class Board(QWidget):
                 self.game2.rotate()
                 self.game2.update()
         
-        elif key == Qt.Key_M and not self.game2.use_pocket:
+        elif key == Qt.Key_N and not self.game2.use_pocket:
             tmp = self.game2.cur_shape.get_pocket()
             tmp2 = self.game2.cur_shape.get_pocket_inx()
             
@@ -237,6 +241,10 @@ class Board(QWidget):
                 self.game2.cur_shape.set_cur_inx(tmp2)
                 self.game2.cur_shape.cury = 0
                 self.game2.use_pocket = True
+
+        elif key == Qt.Key_M:
+            self.game2.dropDown()
+            self.game2.update()
 
 class AttackObserver:
     def __init__(self) -> None:
@@ -489,8 +497,6 @@ class Tetirs(QWidget):
             r_int = random.randint(0,9)
             
             self.put_filed.append([-2 if i is not r_int else -1 for i in range(10) ])
-        
-        
 
         self.update()
 
@@ -509,9 +515,15 @@ class Tetirs(QWidget):
         if self.check_put_block(self.cur_shape.curx, self.cur_shape.cury, self.cur_shape.rotated()):
             self.cur_shape.set_cur_shape(self.cur_shape.rotated())
     
+    def dropDown(self):
+        
+        dy = self.cur_shape.cury
 
+        while self.check_put_block(self.cur_shape.curx, dy+1, self.cur_shape.get_cur_shape()):
+            dy += 1
 
-
+        self.cur_shape.cury = dy
+        self.draw_falling()
 
 
 class Tetrominoe:
