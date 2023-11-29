@@ -85,6 +85,7 @@ class MainWindow(QMainWindow):
         
         self.new_window.show()
 
+
 class Board(QWidget):
     def __init__(self):
         super().__init__()
@@ -97,6 +98,16 @@ class Board(QWidget):
         self.p1_board.setGeometry(0, 0, int(self.width()*0.4), self.height())
         self.p1_board.setStyleSheet("background-color: rgb(255, 255, 255);")
 
+        self.p1_next = QLabel(self)
+        self.p1_next.setGeometry(int(self.width()*0.42), int(self.height()//8 * 2), int(self.width()*0.1), self.height()//8)
+        self.p1_next.setStyleSheet("background-color: rgb(255, 255, 255);")
+
+
+
+        self.p2_next = QLabel(self)
+        self.p2_next.setGeometry(int(self.width()*0.46), int(self.height()//8 * 5), int(self.width()*0.1), self.height()//8)
+        self.p2_next.setStyleSheet("background-color: rgb(255, 255, 255);")
+
         self.p2_board = QLabel(self)
         self.p2_board.setGeometry(int(self.width()*0.6), 0, int(self.width()*0.4), self.height())
         self.p2_board.setStyleSheet("background-color: rgb(255, 255, 255);")
@@ -106,17 +117,22 @@ class Board(QWidget):
 
         
 
-        self.game = Tetirs(self.p1_board,self.height()) # 수정 해야 하는 부분
-        self.game2 = Tetirs(self.p2_board,self.height()) # 수정 해야 하는 부분
+        self.game = Tetirs(self.p1_board,self.p1_next,self.height()) # 수정 해야 하는 부분
+        self.game2 = Tetirs(self.p2_board,self.p2_next,self.height()) # 수정 해야 하는 부분
 
     def board_resize(self):
         self.p1_board.setGeometry(0, 0, (self.p1_board.width()//10)*10, self.height())
         self.p2_board.setGeometry(int(self.width()*0.6), 0, (self.p2_board.width()//10)*10, self.height())
 
+        self.p1_next.setGeometry(int(self.width()*0.46), int(self.height()//8 * 2), (self.p1_next.width()//4)*4, self.height()//8)
+        self.p2_next.setGeometry(int(self.width()*0.42), int(self.height()//8 * 5), (self.p2_next.width()//4)*4, self.height()//8)
+
+        
+
     def keyPressEvent(self, event):
         key = event.key()
         
-        if key == Qt.Key_Left:
+        if key == Qt.Key_Left and not self.game.finish_down_line:
             
             # self.move(self.curX - 1, self.curY)
             
@@ -126,7 +142,7 @@ class Board(QWidget):
 
         elif key == Qt.Key_Right:
             # self.move(self.curX + 1, self.curY)
-            if self.game.check_put_block(self.game.cur_shape.curx - 1, self.game.cur_shape.cury, self.game.cur_shape.get_cur_shape()):
+            if self.game.check_put_block(self.game.cur_shape.curx + 1, self.game.cur_shape.cury, self.game.cur_shape.get_cur_shape()):
                 self.game.move(1,1,0)
                 self.game.cur_shape.curx += 1
 
@@ -134,23 +150,33 @@ class Board(QWidget):
 
         elif key == Qt.Key_Down:
             # self.move(self.curX, self.curY+1)
-            self.game.check_put_block(self.game.cur_shape.curx - 1, self.game.cur_shape.cury, self.game.cur_shape.get_cur_shape())
+            if self.game.check_put_block(self.game.cur_shape.curx, self.game.cur_shape.cury +1, self.game.cur_shape.get_cur_shape()):
+                self.game.move(1,0,1)
+                self.game.cur_shape.cury += 1
             # self.tryMove(self.curPiece.rotateRight(), self.curX, self.curY)
 
         elif key == Qt.Key_Up:
             # self.tryMove(self.curPiece, self.curC, self.curR - 1)
-            self.game.check_put_block(self.game.cur_shape.curx - 1, self.game.cur_shape.cury, self.game.cur_shape.rotated())
+            if self.game.check_put_block(self.game.cur_shape.curx, self.game.cur_shape.cury, self.game.cur_shape.rotated()):
+                for i in range(self.game.cur_shape.get_cur_max_y(self.game.cur_shape.get_cur_shape())+1):
+                    for j in range(self.game.cur_shape.get_cur_max_x(self.game.cur_shape.get_cur_shape())+1):
+                        if self.game.cur_shape.get_cur_shape()[i][j] != -1:
+                            self.game.list_board[i+self.game.cur_shape.cury][self.game.cur_shape.curx + j] = -1
+
+                self.game.cur_shape.set_cur_shape(self.game.cur_shape.rotated())
+                self.game.update()
 
 
 class Tetirs(QWidget):
-    def __init__(self,board:QLabel,height:int):
+    def __init__(self,board:QLabel,next_lb:QLabel,height:int):
         super().__init__()
-        self.initUI(board,height)
+        self.initUI(board,next_lb,height)
 
-    def initUI(self,board:QLabel,height:int):
+    def initUI(self,board:QLabel,next_lb:QLabel,height:int):
         self.board = board
         self.c_height = height
-        
+        self.next_lb = next_lb
+
         self.finish_down_line = True # 한줄이 다 내려왔는지 확인하는 변수 
 
         self.timer = QBasicTimer()
@@ -167,41 +193,51 @@ class Tetirs(QWidget):
 
         
 
-    def get_space_size(self):
-        return self.c_height//20
+    # def get_space_size(self,n=20):
+    #     return self.c_height//n
 
     def start(self): 
 
         self.pixmap = QPixmap(int(self.width()), self.c_height)
         self.pixmap.fill(Qt.white)
         self.board.setPixmap(self.pixmap)
-        
+
+        self.next_pixmap = QPixmap(self.next_lb.width(), self.next_lb.height())
+        self.next_pixmap.fill(Qt.white)
+        self.next_lb.setPixmap(self.next_pixmap)
+
+        self.cur_shape = Shape()
         self.update()
         
-        self.timer.start(200, self)
+        self.timer.start(300, self)
         
 
     def update(self) -> None:
         
         painter = QPainter(self.pixmap)
-            
+
+        next_painter = QPainter(self.next_pixmap)    
+        
         self.draw_board(self.list_board,painter)
 
+        self.draw_board(self.cur_shape.get_next_shape(),next_painter,4,4,8)
+
         self.board.setPixmap(self.pixmap)
+        self.next_lb.setPixmap(self.next_pixmap)
         
 
 
-    def draw_board(self,p_board,painter:QPainter):
+    def draw_board(self,p_board,painter:QPainter,height=20,width=10,n = 1):
         
         colors = [Qt.red, Qt.green, Qt.blue, Qt.yellow, Qt.cyan, Qt.magenta, Qt.gray, Qt.darkRed, Qt.darkGreen, Qt.darkBlue, Qt.darkYellow, Qt.darkCyan, Qt.darkMagenta, Qt.darkGray, Qt.lightGray]
 
-        for i in range(self.game_height):
-            for j in range(self.game_width):
+        for i in range(height):
+            for j in range(width):
                 if p_board[i][j] != -1:
                     painter.setBrush((colors[p_board[i][j]]))
                 else:
                     painter.setBrush(Qt.white)
-                painter.drawRect(j*self.get_space_size(), i*self.get_space_size(), self.get_space_size(), self.get_space_size())
+                painter.drawRect(j*((self.c_height//n)//height), i*((self.c_height//n)//height), ((self.c_height//n)//height), ((self.c_height//n)//height))
 
         painter.end()
         
@@ -219,14 +255,12 @@ class Tetirs(QWidget):
         else:
             super(Board, self).timerEvent(event)
     
-
-
-
     def new_block(self):
-        self.cur_shape = Shape()
+        
         self.cur_shape.get_next_inx()
-
-        if not self.check_put_block(0,5-(self.cur_shape.get_cur_max_x(self.cur_shape.get_cur_shape())//2) - 1, self.cur_shape.get_cur_shape()):
+        print(self.cur_shape.get_blokcs())
+        if not self.check_put_block(5-(self.cur_shape.get_cur_max_x(self.cur_shape.get_cur_shape())//2) - 1,0, self.cur_shape.get_cur_shape()):
+            print("game over")
             self.timer.stop()
             self.game_over()
             return
@@ -241,9 +275,12 @@ class Tetirs(QWidget):
 
     def check_put_block(self,x,y,shape):
         
-        if x+self.cur_shape.get_cur_min_x(shape) < 0 or x+self.cur_shape.get_cur_max_x(shape) >= self.game_width:
+        if x+self.cur_shape.get_cur_min_x(shape) < 0 or x+self.cur_shape.get_cur_max_x(shape)>= self.game_width:
             return False
-        if y+self.cur_shape.get_cur_min_y(shape) < 0 or y+self.cur_shape.get_cur_max_y(shape) >= self.game_height:
+        if y+self.cur_shape.get_cur_min_y(shape) < 0:
+            
+            return False
+        if y+self.cur_shape.get_cur_max_y(shape) >= self.game_height:            
             return False
         for i in range(self.cur_shape.get_cur_max_y(shape),-1,-1):
             for j in range(self.cur_shape.get_cur_max_x(shape),-1,-1):
@@ -251,10 +288,8 @@ class Tetirs(QWidget):
                     if self.put_filed[i+y][j+x] != -1:
                         return False
 
+
         return True
-        
-    def get_middle_pos(self):
-        return 5-(self.cur_shape.get_cur_max_x(self.cur_shape.get_cur_shape())//2) -1
 
     def move(self,flag,dx=0,dy=0):
         for i in range(self.cur_shape.get_cur_max_y(self.cur_shape.get_cur_shape()),-1,-1):
@@ -264,6 +299,7 @@ class Tetirs(QWidget):
                             self.list_board[i+self.cur_shape.cury+dy][self.cur_shape.curx +dx +j] = self.cur_shape.get_cur_inx()
                             self.list_board[i+self.cur_shape.cury][ self.cur_shape.curx + j] = -1
                         if flag == 2:
+                            self.list_board[i+self.cur_shape.cury][self.cur_shape.curx + j] = self.cur_shape.get_cur_inx() 
                             self.put_filed[i+self.cur_shape.cury][self.cur_shape.curx + j] = self.cur_shape.get_cur_inx()
 
                             
@@ -273,6 +309,7 @@ class Tetirs(QWidget):
             self.move(2)
 
             self.finish_down_line = True
+            self.delete_line()
             return
         
 
@@ -281,9 +318,21 @@ class Tetirs(QWidget):
         self.update()
 
     def game_over(self):
+        self.timer.stop()
         pass
 
-    
+    def delete_line(self):
+        
+        for i in self.list_board:
+            if -1 not in i:
+                self.list_board.remove(i)
+                self.put_filed.remove(i)
+                self.list_board.insert(0,[-1 for i in range(10)])
+                self.put_filed.insert(0,[-1 for i in range(10)])
+        
+        self.update()
+
+                
     
 
 
@@ -396,6 +445,8 @@ class Shape:
         self.cur_shape = self.tetro.tetrominoe[self.cur_inx]
         self.get_random_tetro()
         
+    def get_next_shape(self):
+        return self.tetro.tetrominoe[self.next_inx]
 
     def get_random_tetro(self):
         if (self.blocks == []):
