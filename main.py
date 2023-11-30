@@ -116,6 +116,11 @@ class Board(QWidget):
         self.p1_pocket.setGeometry(int(self.width()*0.4), int(self.height()//8 * 4), int(self.width()*0.1), self.height()//8)
         self.p1_pocket.setStyleSheet("background-color: rgb(255, 255, 255);")
 
+        self.p1_score = QLabel(self)
+        self.p1_score.setGeometry(int(self.width()*0.42), int(self.height()//8 * 3), int(self.width()*0.1), self.height()//8)
+        self.p1_score.setText(f"점수: {0}")
+
+
 
         self.p2_board = QLabel(self)
         self.p2_board.setGeometry(int(self.width()*0.6), 0, int(self.width()*0.4), self.height())
@@ -130,6 +135,8 @@ class Board(QWidget):
         self.p2_pocket.setGeometry(int(self.width()*0.5), int(self.height()//8 * 4), int(self.width()*0.1), self.height()//8)
         self.p2_pocket.setStyleSheet("background-color: rgb(255, 255, 255);")
 
+        
+
         self.board_resize()
 
         MainWindow.center(self,False)
@@ -139,9 +146,15 @@ class Board(QWidget):
             self.game = Tetirs(self.p1_board,self.p1_next,self.p1_pocket,self.height(), observer,self.option-1) # 수정 해야 하는 부분
         else:
             self.game = Tetirs(self.p1_board,self.p1_next,self.p1_pocket,self.height(), observer,self.option)
+        self.game.user_signal.connect(self.show_p1_score)
 
         if option != 1:
+            self.p2_score = QLabel(self)
+            self.p2_score.setGeometry(int(self.width()*0.5), int(self.height()//8 * 3), int(self.width()*0.1), self.height()//8)
+            self.p2_score.setText(f"점수: {0}")
+
             self.game2 = Tetirs(self.p2_board,self.p2_next,self.p2_pocket,self.height(), observer,self.option) # 수정 해야 하는 부분
+            self.game2.user_signal.connect(self.show_p2_score)
 
     def board_resize(self):
         self.p1_board.setGeometry(0, 0, (self.p1_board.width()//10)*10, self.height())
@@ -205,6 +218,14 @@ class Board(QWidget):
         elif key == Qt.Key_M:
             self.game2.dropDown()
     
+    @pyqtSlot(int)
+    def show_p1_score(self,score):
+        self.p1_score.setText(f"점수: {score}")
+
+    @pyqtSlot(int)
+    def show_p2_score(self,score):
+        self.p2_score.setText(f"점수: {score}")
+
     def closeEvent(self, event):
         if self.option == 1:
             self.game.timer.stop()
@@ -480,11 +501,16 @@ class Ai_Move:
         
 
 class Tetirs(QWidget):
+    user_signal = pyqtSignal(int)
     def __init__(self,board:QLabel,next_lb:QLabel,pocket_lb:QLabel,height:int, observer:AttackObserver,option):
         super().__init__()
         self.option = option
         
         self.ai_move = Ai_Move()
+
+        
+    
+        self.score = 0
 
         self.initUI(board,next_lb,height,pocket_lb)
         
@@ -702,7 +728,7 @@ class Tetirs(QWidget):
 
     def delete_line(self):
         self.attack_line_cnt = 0
-        attack_dmg = [0,0,2,3,4]
+        attack_dmg = [0,0,2,3,4,10]
         for i,val in enumerate(self.put_filed):
             if -1 not in val:
                 self.put_filed.remove(val)
@@ -710,7 +736,9 @@ class Tetirs(QWidget):
                 self.falling_board.insert(0,[-1 for i in range(10)])
                 self.put_filed.insert(0,[-1 for i in range(10)])
                 self.attack_line_cnt += 1
-            
+
+        self.score += 100*(attack_dmg[self.attack_line_cnt+1])
+        self.user_signal.emit(self.score)
         self.attack(attack_dmg[self.attack_line_cnt]) 
         self.attack_line_cnt = 0
         self.update()
