@@ -214,27 +214,183 @@ class AttackObserver:
             if game != attak_game:
                 game.attacked(attack_dmg)
                 
+'''
 
+가중치
+
+높이 + 전체 빈칸 + 지울 수 있는 줄의 개수 +  벽과 인접한 면의 개수 +바닥과 인접한 면의 개수+ 블록과 인접한 면의 개수 
+
+
+'''
 class Ai_Move:
     def __init__(self):
         self.game_width = 10
         self.game_height = 20
         
 
-    def instruct_direction(self,game,put_board,falling_board,cur_shape ):
+    def instruct_direction(self,game,put_board,cur_shape ):
         self.game = game
         self.put_board = put_board
-        self.falling_board = falling_board
+        self.falling_board = [list([-1 for i in range(10)]) for j in range(20)]  # 10*20
+        self.back_board = [list([-1 for i in range(10)]) for j in range(20)]
+        
         self.cur_shape = cur_shape
+        self.dy = 0
+        self.continueflag = False
+
         
-        
-        for i in range(random.randint(0,3)):
+        self.weight_board = [0,0,0] # 가중치, x, 회전 횟수
+
+        for i in range(4):
+            for j in range(20 - self.cur_shape.get_cur_max_x(self.cur_shape.get_cur_shape())-1):
+
+                self.weight_board_rotated = []
+                
+                self.dropDown(j)
+                
+                if self.continueflag:
+                    self.continueflag = False
+                    continue
+                self.draw_falling(j,self.dy)
+                
+                self.add_board()
+
+
+                self.height =self.get_height()
+                self.blank = self.get_blank(j)
+                self.del_line = self.get_del_line()
+                self.wall = self.get_wall()
+                self.floor = self.get_floor()
+                self.around_block = self.get_around_block()
+
+                score = -0.5*self.height - self.blank + self.del_line*0.7 + self.wall*0.1 + self.floor*0.9 + self.around_block*0.3
+                
+                if(score > self.weight_board[0]):
+                    self.weight_board[0] = score
+                    self.weight_board[1] = j
+                    self.weight_board[2] = i
+            
+            self.cur_shape.set_cur_shape(self.cur_shape.rotated())
+
+        for i in range(self.weight_board[2]):
             self.game.rotate_move()
-        for i in range(random.randint(0,3)):
-            self.game.left_move()
-        for i in range(random.randint(0,3)):
-            self.game.right_move()
+
+        if self.weight_board[1] < self.cur_shape.curx:
+            for i in range(self.cur_shape.curx - self.weight_board[1]):
+                self.game.left_move()
+
+        elif self.weight_board[1] > self.cur_shape.curx:
+            for i in range(self.weight_board[1] - self.cur_shape.curx):
+                self.game.right_move()
+
         self.game.dropDown()
+        
+
+
+    def get_around_block(self):
+        around_block_cnt = 0
+        for i in range(self.game_height):
+            for j in range(self.game_width):
+                if self.falling_board[i][j] != -1:
+                    if i-1 >= 0 and self.put_board[i-1][j] != -1:
+                        around_block_cnt += 1
+                    if i+1 < self.game_height and self.put_board[i+1][j] != -1:
+                        around_block_cnt += 1
+                    if j-1 >= 0 and self.put_board[i][j-1] != -1:
+                        around_block_cnt += 1
+                    if j+1 < self.game_width and self.put_board[i][j+1] != -1:
+                        around_block_cnt += 1
+                    
+        return around_block_cnt
+    
+    def get_wall(self):
+        wall_cnt = 0
+        for i in range(self.game_height):
+            if self.back_board[i][0] != -1:
+                wall_cnt += 1
+            if self.back_board[i][self.game_width-1] != -1:
+                wall_cnt += 1
+                    
+        return wall_cnt
+    
+    def get_floor(self):
+        floor_cnt = 0
+        for i in range(self.game_width):
+            if self.back_board[-1][i] != -1:
+                floor_cnt += 1
+        return floor_cnt
+
+
+            
+    def get_del_line(self):
+        del_line_cnt = 0
+        for i in range(self.game_height):
+            if -1 not in self.back_board[i]:
+                del_line_cnt += 1
+        return del_line_cnt
+
+    def add_board(self):
+        self.back_board = [list([-1 for i in range(10)]) for j in range(20)]
+        for i in range(self.game_height):
+            for j in range(self.game_width):
+                if self.put_board[i][j] != -1:
+                    self.back_board[i][j] = self.put_board[i][j]
+                elif self.falling_board[i][j] != -1:
+                    self.back_board[i][j] = self.falling_board[i][j]
+                else:
+                    self.back_board[i][j] = -1
+
+
+    def get_height(self):
+        for i ,val in enumerate(self.back_board):
+            if sum(val) != -10:
+                return self.game_height - i
+        return 0
+            
+    def get_blank(self,x):
+        blank_cnt = 0
+        for i in range(self.game_height-1,self.game_height-1-self.height,-1):
+            for j in range(x,x+self.cur_shape.get_cur_max_x(self.cur_shape.get_cur_shape())+1):
+                if self.back_board[i][j] == -1:
+                    blank_cnt += 1
+        return blank_cnt
+
+    def dropDown(self,x):
+        
+        self.dy = self.cur_shape.cury
+
+        while self.game.check_put_block(x,self.dy+1, self.cur_shape.get_cur_shape()):
+            self.dy += 1
+        if self.dy == self.cur_shape.cury:
+            self.continueflag = True
+            
+        
+
+    def draw_falling(self,x,y):
+        flag = False
+        self.falling_board = [list([-1 for i in range(10)]) for j in range(20)]
+        for i in range(self.cur_shape.get_cur_max_y(self.cur_shape.get_cur_shape())+1):
+            for j in range(self.cur_shape.get_cur_max_x(self.cur_shape.get_cur_shape())+1):
+                if self.cur_shape.get_cur_shape()[i][j] != -1 and j+x < 10:                    
+                    self.falling_board[i+y][x + j] = self.cur_shape.get_cur_inx()
+        
+
+    def check_put_block(self,x,y,shape):
+        
+        if x+self.cur_shape.get_cur_min_x(shape) < 0 or x+self.cur_shape.get_cur_max_x(shape)>= self.game_width:
+            return False
+        if y+self.cur_shape.get_cur_min_y(shape) < 0:
+            print("game over")
+            return False
+        if y+self.cur_shape.get_cur_max_y(shape) >= self.game_height:            
+            return False
+        
+        for i in range(self.cur_shape.get_cur_max_y(shape),-1,-1):
+            for j in range(self.cur_shape.get_cur_max_x(shape),-1,-1):
+                if shape[i][j] != -1:
+                    if self.put_filed[i+y][j+x] != -1:
+                        return False
+
         
 
 class Tetirs(QWidget):
@@ -409,7 +565,7 @@ class Tetirs(QWidget):
 
         ## 이 부분에서 ai로 값 전달
         if self.option == 4:
-            self.ai_move.instruct_direction(self,self.put_filed,self.falling_board,self.cur_shape)
+            self.ai_move.instruct_direction(self,self.put_filed,self.cur_shape)
 
         self.draw_falling()
         self.update()
@@ -467,7 +623,7 @@ class Tetirs(QWidget):
                 self.attack_line_cnt += 1
             
         self.attack(attack_dmg[self.attack_line_cnt]) 
-
+        self.attack_line_cnt = 0
         self.update()
 
     def up_board(self,attack_dmg):
@@ -711,7 +867,7 @@ if __name__ == "__main__":
 
 좌 우 드롭 포켓 교체 메소드 만들기 V
 
-랜덤으로 내리는거 테스트
+랜덤으로 내리는거 테스트 V
 
 새로운 레이어 만들어서 그 위에 그리기
 for문 로테이트
