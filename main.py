@@ -10,6 +10,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.initUI()
+        self.new_window = None
     
     def initUI(self):
         self.setWindowTitle("Tetris")
@@ -83,10 +84,13 @@ class MainWindow(QMainWindow):
         self.label.setFont(font)
 
     def open_new_window(self,option):
+        if not self.new_window is None:
+            self.new_window.close()
         self.new_window = Board(option)
         
         self.new_window.show()
 
+    
 
 class Board(QWidget):
     def __init__(self,option):
@@ -132,7 +136,7 @@ class Board(QWidget):
 
         observer = AttackObserver()
         if self.option == 4:
-            self.game = Tetirs(self.p1_board,self.p1_next,self.p1_pocket,self.height(), observer,self.option) # 수정 해야 하는 부분
+            self.game = Tetirs(self.p1_board,self.p1_next,self.p1_pocket,self.height(), observer,self.option-1) # 수정 해야 하는 부분
         else:
             self.game = Tetirs(self.p1_board,self.p1_next,self.p1_pocket,self.height(), observer,self.option)
 
@@ -200,7 +204,15 @@ class Board(QWidget):
 
         elif key == Qt.Key_M:
             self.game2.dropDown()
+    
+    def closeEvent(self, event):
+        if self.option == 1:
+            self.game.timer.stop()
+        else:
+            self.game.timer.stop()
+            self.game2.timer.stop()
 
+    
 class AttackObserver:
     def __init__(self) -> None:
         self.game_list = []
@@ -267,8 +279,6 @@ class Ai_Move:
                     
                     self.add_board()
 
-                    self.back_board
-
                     self.height = self.get_height()
                     self.blank = self.get_blank(j)
                     self.under_blank = self.get_under_blank(j)  
@@ -279,7 +289,7 @@ class Ai_Move:
                     self.around_block = self.get_around_block()
                     
                     
-                    score = -3*self.height - 1*self.blank - 10*self.under_blank + self.del_score() + self.wall*6 + self.floor*10  + self.around_block*6
+                    score = -3*self.height - 1*self.blank - 15*self.under_blank + self.del_score() + self.wall*6 + self.floor*10  + self.around_block*6
                     
                     
                     
@@ -315,7 +325,6 @@ class Ai_Move:
                 #print(self.shape)
 
         #print("===================================")
-
 
         sleep_time = 0.01
 
@@ -787,6 +796,7 @@ class Tetirs(QWidget):
 
 
 
+
 class Tetrominoe:
     def __init__(self):
         self.tetrominoe = [ # i, o, t, j, L,s,z
@@ -950,13 +960,17 @@ if __name__ == "__main__":
 
 랜덤으로 내리는거 테스트 V
 
-새로운 레이어 만들어서 그 위에 그리기
+새로운 레이어 만들어서 그 위에 그리기 V
 for문 로테이트
     for문으로 0부터 끝까지 다 돌면서 
     각 위치의 가중치값 구하기
 가장 높았던 위치의 가중치값을 기준으로
 이동
 
-종료 했을 때 잘 종료 되게 하기
+종료 했을 때 잘 종료 되게 하기 V
+
+점수 추가
+
+설정 
 
 '''
