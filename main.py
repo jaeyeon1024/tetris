@@ -1,5 +1,7 @@
-import random
 import sys
+import math
+import time
+import random
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
@@ -130,7 +132,7 @@ class Board(QWidget):
 
         observer = AttackObserver()
         if self.option == 4:
-            self.game = Tetirs(self.p1_board,self.p1_next,self.p1_pocket,self.height(), observer,self.option-1) # 수정 해야 하는 부분
+            self.game = Tetirs(self.p1_board,self.p1_next,self.p1_pocket,self.height(), observer,self.option) # 수정 해야 하는 부분
         else:
             self.game = Tetirs(self.p1_board,self.p1_next,self.p1_pocket,self.height(), observer,self.option)
 
@@ -238,54 +240,120 @@ class Ai_Move:
         self.dy = 0
         self.continueflag = False
 
+        self.shape = self.cur_shape.get_cur_shape()
         
-        self.weight_board = [0,0,0] # 가중치, x, 회전 횟수
+        
+        self.weight_board = [-math.inf,0,0,0] # 가중치, x, 회전 횟수 , pocket 사용 여부
 
-        for i in range(4):
-            for j in range(20 - self.cur_shape.get_cur_max_x(self.cur_shape.get_cur_shape())-1):
-
-                self.weight_board_rotated = []
+        for k in range(2):
+            if not self.cur_shape.is_pocket and k == 1:
+                self.shape = self.cur_shape.get_next_shape()
                 
-                self.dropDown(j)
-                
-                if self.continueflag:
-                    self.continueflag = False
-                    continue
-                self.draw_falling(j,self.dy)
-                
-                self.add_board()
-
-
-                self.height =self.get_height()
-                self.blank = self.get_blank(j)
-                self.del_line = self.get_del_line()
-                self.wall = self.get_wall()
-                self.floor = self.get_floor()
-                self.around_block = self.get_around_block()
-
-                score = -0.5*self.height - self.blank + self.del_line*0.7 + self.wall*0.1 + self.floor*0.9 + self.around_block*0.3
-                
-                if(score > self.weight_board[0]):
-                    self.weight_board[0] = score
-                    self.weight_board[1] = j
-                    self.weight_board[2] = i
+            elif self.cur_shape.is_pocket and k == 1:
+                self.shape = self.cur_shape.get_pocket()
             
-            self.cur_shape.set_cur_shape(self.cur_shape.rotated())
+            for i in range(4):
+                
+                for j in range(20 - self.cur_shape.get_cur_max_x(self.shape)-1):
+                
+                    self.weight_board_rotated = []
+                    
+                    self.dropDown(j)
+                    
+                    if self.continueflag:
+                        self.continueflag = False
+                        continue
+                    self.draw_falling(j,self.dy)
+                    
+                    self.add_board()
+
+                    self.back_board
+
+                    self.height = self.get_height()
+                    self.blank = self.get_blank(j)
+                    self.under_blank = self.get_under_blank(j)  
+                    
+                    self.del_line = self.get_del_line()
+                    self.wall = self.get_wall()
+                    self.floor = self.get_floor()
+                    self.around_block = self.get_around_block()
+                    
+                    
+                    score = -3*self.height - 1*self.blank - 10*self.under_blank + self.del_score() + self.wall*6 + self.floor*10  + self.around_block*6
+                    
+                    
+                    
+                    '''
+                    높이 : 0~20
+
+                    빈칸 : 0~200
+
+                    지울 수 있는 줄의 개수 : 0~4
+
+                    밑에 빈칸 : 0~40
+
+                    벽과 인접한 면의 개수 : 0~20
+
+                    바닥과 인접한 면의 개수 : 0~10
+
+                    블록과 인접한 면의 개수 : 0~80
+                    
+                    '''
+                    
+                    
+                    if(score >= self.weight_board[0]):
+                        #print("k : ",k," i : ",i," j : ",j)
+                        #print("height : ",self.height," blank : ",self.blank," under_blank : ",self.under_blank," del_line : ",self.del_line," wall : ",self.wall," floor : ",self.floor," around_block : ",self.around_block," score : ",score)
+                        self.weight_board[0] = score
+                        self.weight_board[1] = j
+                        self.weight_board[2] = i
+                        
+                        if k == 1:
+                            self.weight_board[3] = 1
+                
+                self.shape = self.cur_shape.rotated(self.shape)
+                #print(self.shape)
+
+        #print("===================================")
+
+
+        sleep_time = 0.01
+
+        if self.weight_board[3] == 1:
+            self.game.pocket_move()
+            time.sleep(sleep_time)
+        
+        
+            
 
         for i in range(self.weight_board[2]):
             self.game.rotate_move()
+            time.sleep(sleep_time)
+            
 
         if self.weight_board[1] < self.cur_shape.curx:
             for i in range(self.cur_shape.curx - self.weight_board[1]):
                 self.game.left_move()
+                time.sleep(sleep_time)
 
         elif self.weight_board[1] > self.cur_shape.curx:
             for i in range(self.weight_board[1] - self.cur_shape.curx):
                 self.game.right_move()
+                time.sleep(sleep_time)
 
         self.game.dropDown()
         
-
+    def del_score(self):
+        if self.del_line == 1:
+            return 30
+        elif self.del_line == 2:
+            return 300
+        elif self.del_line == 3:
+            return 500
+        elif self.del_line == 4:
+            return 800
+        else:
+            return 0
 
     def get_around_block(self):
         around_block_cnt = 0
@@ -350,16 +418,25 @@ class Ai_Move:
     def get_blank(self,x):
         blank_cnt = 0
         for i in range(self.game_height-1,self.game_height-1-self.height,-1):
-            for j in range(x,x+self.cur_shape.get_cur_max_x(self.cur_shape.get_cur_shape())+1):
+            for j in range(self.game_width):
                 if self.back_board[i][j] == -1:
                     blank_cnt += 1
+        return blank_cnt
+
+    def get_under_blank(self,x):
+        blank_cnt = 0
+        for i in range(self.game_height-1,self.dy-1,-1):
+            for j in range(x,x+self.cur_shape.get_cur_max_x(self.shape)+1):
+                if self.back_board[i][j] == -1:
+                    blank_cnt += 1
+        
         return blank_cnt
 
     def dropDown(self,x):
         
         self.dy = self.cur_shape.cury
 
-        while self.game.check_put_block(x,self.dy+1, self.cur_shape.get_cur_shape()):
+        while self.game.check_put_block(x,self.dy+1, self.shape):
             self.dy += 1
         if self.dy == self.cur_shape.cury:
             self.continueflag = True
@@ -369,9 +446,9 @@ class Ai_Move:
     def draw_falling(self,x,y):
         flag = False
         self.falling_board = [list([-1 for i in range(10)]) for j in range(20)]
-        for i in range(self.cur_shape.get_cur_max_y(self.cur_shape.get_cur_shape())+1):
-            for j in range(self.cur_shape.get_cur_max_x(self.cur_shape.get_cur_shape())+1):
-                if self.cur_shape.get_cur_shape()[i][j] != -1 and j+x < 10:                    
+        for i in range(self.cur_shape.get_cur_max_y(self.shape)+1):
+            for j in range(self.cur_shape.get_cur_max_x(self.shape)+1):
+                if self.shape[i][j] != -1:                    
                     self.falling_board[i+y][x + j] = self.cur_shape.get_cur_inx()
         
 
@@ -385,8 +462,8 @@ class Ai_Move:
         if y+self.cur_shape.get_cur_max_y(shape) >= self.game_height:            
             return False
         
-        for i in range(self.cur_shape.get_cur_max_y(shape),-1,-1):
-            for j in range(self.cur_shape.get_cur_max_x(shape),-1,-1):
+        for i in range(self.cur_shape.get_cur_max_y(shape)-1,-1,-1):
+            for j in range(self.cur_shape.get_cur_max_x(shape)-1,-1,-1):
                 if shape[i][j] != -1:
                     if self.put_filed[i+y][j+x] != -1:
                         return False
@@ -523,6 +600,8 @@ class Tetirs(QWidget):
                 self.attack_dmg = 0
 
                 self.new_block()
+                if self.option == 4:
+                    self.ai_move.instruct_direction(self,self.put_filed,self.cur_shape)
 
             else:
                 self.one_line_down()
@@ -564,8 +643,7 @@ class Tetirs(QWidget):
         self.cur_shape.cury = 0
 
         ## 이 부분에서 ai로 값 전달
-        if self.option == 4:
-            self.ai_move.instruct_direction(self,self.put_filed,self.cur_shape)
+        
 
         self.draw_falling()
         self.update()
@@ -615,10 +693,12 @@ class Tetirs(QWidget):
 
     def delete_line(self):
         self.attack_line_cnt = 0
-        attack_dmg = [0,1,2,3,4]
-        for i in self.put_filed:
-            if -1 not in i:
-                self.put_filed.remove(i)
+        attack_dmg = [0,0,2,3,4]
+        for i,val in enumerate(self.put_filed):
+            if -1 not in val:
+                self.put_filed.remove(val)
+                del self.falling_board[i]
+                self.falling_board.insert(0,[-1 for i in range(10)])
                 self.put_filed.insert(0,[-1 for i in range(10)])
                 self.attack_line_cnt += 1
             
@@ -644,7 +724,7 @@ class Tetirs(QWidget):
 
         
     def attack(self,attack_dmg):
-        if self.option == 3:
+        if self.option == 3 or self.option == 4:
             self.observer.notify_attack(self,attack_dmg)
     
     def left(self):
@@ -654,8 +734,8 @@ class Tetirs(QWidget):
     def down(self):
         self.cur_shape.cury += 1
     def rotate(self):
-        if self.check_put_block(self.cur_shape.curx, self.cur_shape.cury, self.cur_shape.rotated()):
-            self.cur_shape.set_cur_shape(self.cur_shape.rotated())
+        if self.check_put_block(self.cur_shape.curx, self.cur_shape.cury, self.cur_shape.rotated(self.cur_shape.get_cur_shape())):
+            self.cur_shape.set_cur_shape(self.cur_shape.rotated(self.cur_shape.get_cur_shape()))
     
     def dropDown(self):
         
@@ -670,6 +750,7 @@ class Tetirs(QWidget):
     def left_move(self):
         if self.check_put_block(self.cur_shape.curx - 1, self.cur_shape.cury, self.cur_shape.get_cur_shape()):
             self.left()
+            
             self.draw_falling()
     
     def right_move(self):
@@ -763,14 +844,14 @@ class Shape:
         self.pocket_shpae = [list([-1 for i in range(4)]) for j in range(4)]  # 4*4
         self.is_pocket = False
 
-    def rotated(self):
-        n = max(self.get_cur_max_y(self.cur_shape),self.get_cur_max_x(self.cur_shape))+1 # 행 길이
+    def rotated(self,shape):
+        n = max(self.get_cur_max_y(shape),self.get_cur_max_x(shape))+1 # 행 길이
         m = n # 열 길이 
         result = [[0] * m for _ in range(n)] # 회전한 결과를 표시하는 배열
         
         for i in range(n):
             for j in range(m):
-                result[j][n-i-1] = self.cur_shape[i][j]
+                result[j][n-i-1] = shape[i][j]
         
         for i in range(4-m):
             result.append([-1 for i in range(n)])
