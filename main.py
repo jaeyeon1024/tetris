@@ -102,6 +102,14 @@ class Board(QWidget):
 
         self.option = option
 
+        self.next_block_text = QLabel(self)
+        self.next_block_text.setGeometry(int(self.width()*0.47), int(self.height()//8 * 1.2), int(self.width()*0.1), self.height()//8)
+        self.next_block_text.setText("다음 블럭")
+
+        self.pocket_block_text = QLabel(self)
+        self.pocket_block_text.setGeometry(int(self.width()*0.47), int(self.height()//8 * 3.2), int(self.width()*0.1), self.height()//8)
+        self.pocket_block_text.setText("포켓 블럭")
+
         
 
         self.p1_board = QLabel(self)
@@ -117,7 +125,7 @@ class Board(QWidget):
         self.p1_pocket.setStyleSheet("background-color: rgb(255, 255, 255);")
 
         self.p1_score = QLabel(self)
-        self.p1_score.setGeometry(int(self.width()*0.42), int(self.height()//8 * 3), int(self.width()*0.1), self.height()//8)
+        self.p1_score.setGeometry(int(self.width()*0.42), int(self.height()//8 * 0.5), int(self.width()*0.1), self.height()//8)
         self.p1_score.setText(f"점수: {0}")
 
 
@@ -150,7 +158,7 @@ class Board(QWidget):
 
         if option != 1:
             self.p2_score = QLabel(self)
-            self.p2_score.setGeometry(int(self.width()*0.5), int(self.height()//8 * 3), int(self.width()*0.1), self.height()//8)
+            self.p2_score.setGeometry(int(self.width()*0.5), int(self.height()//8 * 0.5), int(self.width()*0.1), self.height()//8)
             self.p2_score.setText(f"점수: {0}")
 
             self.game2 = Tetirs(self.p2_board,self.p2_next,self.p2_pocket,self.height(), observer,self.option) # 수정 해야 하는 부분
@@ -997,7 +1005,7 @@ for문 로테이트
 
 종료 했을 때 잘 종료 되게 하기 V
 
-점수 추가
+점수 추가 V
 
 설정 
 
