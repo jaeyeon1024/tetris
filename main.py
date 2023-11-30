@@ -1,16 +1,22 @@
 import sys
 import math
 import time
+import copy
 import random
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 
+
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.initUI()
         self.new_window = None
+        self.setting_window = None
+
+        self.initUI()
+        
     
     def initUI(self):
         self.setWindowTitle("Tetris")
@@ -20,6 +26,7 @@ class MainWindow(QMainWindow):
         widget = QWidget(self)
         grid = QGridLayout(widget)
         
+        self.tetrominoe = Tetrominoe()
 
         self.label = QLabel("테트리스 게임", self)
         #self.label.setGeometry(0, 0, self.width(), 50)
@@ -47,7 +54,7 @@ class MainWindow(QMainWindow):
 
         self.setting_btn = QPushButton("설정", self)
         self.setting_btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        #self.setting_btn.clicked.connect(self.open_new_window)
+        self.setting_btn.clicked.connect(self.open_setting_window)
         
         self.exit_btn = QPushButton(" 나가기", self)
         self.exit_btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
@@ -86,21 +93,109 @@ class MainWindow(QMainWindow):
     def open_new_window(self,option):
         if not self.new_window is None:
             self.new_window.close()
-        self.new_window = Board(option)
+        if not self.setting_window is None:
+            self.setting_window.close()
+        print(self.tetrominoe.tetrominoe)
+        self.new_window = Board(option,self.tetrominoe)
         
         self.new_window.show()
 
+    def open_setting_window(self):
+        if not self.setting_window is None:
+            self.setting_window.close()
+        if not self.new_window is None:
+            self.new_window.close()
+
+        self.setting_window = SettingWindow(self.tetrominoe)
+        self.setting_window.show()
+
+class SettingWindow(QWidget):
+    def __init__(self,tetrominoe):
+        super().__init__()
+        self.new_shape = [[-1 for i in range(4)] for j in range(4)]
+        self.tetrominoe = tetrominoe
+        self.initUI()
     
+    def initUI(self):
+        self.setWindowTitle("setting")
+        self.setGeometry(100, 100, 1000, 700)
+        MainWindow.center(self,False)
+
+        widget = QWidget(self)
+        grid = QGridLayout(widget)
+
+
+        self.help_p1 = QLabel("player 1\n a: 왼쪽 이동\n d: 오른쪽 이동\n s: 한칸 내리기\n w: 모양바꾸기\n c: 포켓에 저장\n v: 바로 내리기",self)
+        #self.help_p1.setGeometry(int(self.width()*0.1), 50, int(self.width()*0.4), self.height()//5)
+
+        self.help_p2 = QLabel("player 2\n ←: 왼쪽 이동\n →: 오른쪽 이동\n ↓: 한칸 내리기\n ↑: 모양바꾸기\n n: 포켓에 저장\n m: 바로 내리기",self)
+        #self.help_p2.setGeometry(int(self.width()*0.6), 50, int(self.width()*0.4), self.height()//5)
+        
+        grid.addWidget(self.help_p1,0,0,2,2)
+        grid.addWidget(self.help_p2,0,2,2,2)
+        
+        self.buttons = [list([0,0] for _ in range(4)) for __ in range(4)]
+        for i in range(4):
+            for j in range(4):
+                self.buttons[i][j][0] = (QPushButton("", self))
+                self.buttons[i][j][0].clicked.connect(lambda state, x=i, y=j: self.button_clicked(y,x))
+                self.buttons[i][j][0].setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+                grid.addWidget(self.buttons[i][j][0],i+2,j)
+
+        
+
+        self.save_btn = QPushButton("저장", self)
+        self.save_btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.save_btn.clicked.connect(self.save_clicked)
+        grid.addWidget(self.save_btn,2,5,2,1)
+
+        self.clear_btn = QPushButton("초기화", self)
+        self.clear_btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.clear_btn.clicked.connect(self.clear_clicked)
+        grid.addWidget(self.clear_btn,4,5,2,1)
+
+
+        self.setLayout(grid)
+
+        self.clear_clicked()
+
+    def button_clicked(self,x,y):
+        
+
+        if self.buttons[y][x][1] == 0:
+            self.buttons[y][x][1] = 1
+            self.buttons[y][x][0].setStyleSheet("background-color: rgb(134, 229, 127);")
+            self.new_shape[y][x] = 1
+
+        else:
+            self.buttons[y][x][1] = 0
+            self.buttons[y][x][0].setStyleSheet("background-color: rgb(255, 255, 255);")
+            self.new_shape[y][x] = -1
+
+    def save_clicked(self):
+        self.new_shape = self.tetrominoe.replace_shape(self.new_shape)
+        self.tetrominoe.tetrominoe.append(copy.deepcopy(self.new_shape))
+        self.clear_clicked()
+    
+    def clear_clicked(self):
+        for i in range(4):
+            for j in range(4):
+                self.buttons[i][j][1] = 0
+                self.buttons[i][j][0].setStyleSheet("background-color: rgb(255, 255, 255);")
+                self.new_shape[i][j] = -1
 
 class Board(QWidget):
-    def __init__(self,option):
+    def __init__(self,option,tetrominoe):
         super().__init__()
+        self.tetrominoe = tetrominoe
         self.initUI(option)
     def initUI(self,option):
         self.setWindowTitle("Tetris")
         self.setGeometry(100, 100, 1000, 700)
 
         self.option = option
+
+        
 
         self.next_block_text = QLabel(self)
         self.next_block_text.setGeometry(int(self.width()*0.47), int(self.height()//8 * 1.2), int(self.width()*0.1), self.height()//8)
@@ -151,9 +246,9 @@ class Board(QWidget):
 
         observer = AttackObserver()
         if self.option == 4:
-            self.game = Tetirs(self.p1_board,self.p1_next,self.p1_pocket,self.height(), observer,self.option-1) # 수정 해야 하는 부분
+            self.game = Tetirs(self.p1_board,self.p1_next,self.p1_pocket,self.height(), observer,self.option-1,self.tetrominoe) # 수정 해야 하는 부분
         else:
-            self.game = Tetirs(self.p1_board,self.p1_next,self.p1_pocket,self.height(), observer,self.option)
+            self.game = Tetirs(self.p1_board,self.p1_next,self.p1_pocket,self.height(), observer,self.option,self.tetrominoe) # 수정 해야 하는 부분
         self.game.user_signal.connect(self.show_p1_score)
 
         if option != 1:
@@ -161,7 +256,7 @@ class Board(QWidget):
             self.p2_score.setGeometry(int(self.width()*0.5), int(self.height()//8 * 0.5), int(self.width()*0.1), self.height()//8)
             self.p2_score.setText(f"점수: {0}")
 
-            self.game2 = Tetirs(self.p2_board,self.p2_next,self.p2_pocket,self.height(), observer,self.option) # 수정 해야 하는 부분
+            self.game2 = Tetirs(self.p2_board,self.p2_next,self.p2_pocket,self.height(), observer,self.option,self.tetrominoe) # 수정 해야 하는 부분
             self.game2.user_signal.connect(self.show_p2_score)
 
     def board_resize(self):
@@ -318,7 +413,7 @@ class Ai_Move:
                     self.around_block = self.get_around_block()
                     
                     
-                    score = -3*self.height - 1*self.blank - 15*self.under_blank + self.del_score() + self.wall*6 + self.floor*10  + self.around_block*6
+                    score = -5*self.height - 1*self.blank - 15*self.under_blank + self.del_score() + self.wall*6 + self.floor*10  + self.around_block*6
                     
                     
                     
@@ -510,10 +605,10 @@ class Ai_Move:
 
 class Tetirs(QWidget):
     user_signal = pyqtSignal(int)
-    def __init__(self,board:QLabel,next_lb:QLabel,pocket_lb:QLabel,height:int, observer:AttackObserver,option):
+    def __init__(self,board:QLabel,next_lb:QLabel,pocket_lb:QLabel,height:int, observer:AttackObserver,option,tetrominoe):
         super().__init__()
         self.option = option
-        
+        self.tetrominoe = tetrominoe
         self.ai_move = Ai_Move()
 
         
@@ -572,7 +667,9 @@ class Tetirs(QWidget):
         self.pocket_pixmap.fill(Qt.white)
         self.pocket_lb.setPixmap(self.pocket_pixmap)
         
-        self.cur_shape = Shape()
+        self.cur_shape = Shape(self.tetrominoe)
+
+        
 
         self.update()
         
@@ -873,11 +970,21 @@ class Tetrominoe:
         ]
     def get_tetro_len(self):
         return len(self.tetrominoe)
+    
+    def replace_shape(self,shape):
+        for i in range(4):
+            for j in range(4):
+                if shape[i][j] != -1:
+                    shape[i][j] = self.get_tetro_len()
+        return shape
 
 class Shape:
 
-    def __init__(self): 
-        self.tetro = Tetrominoe()
+    def __init__(self,tetrominoe): 
+        self.tetro = tetrominoe
+
+        
+
         self.cur_inx = 0
         self.cur_shape = self.tetro.tetrominoe[self.cur_inx]
         self.next_inx = 0
