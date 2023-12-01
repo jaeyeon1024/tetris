@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 
-
+random_seed = random.randint(0,1000000000)
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -1073,7 +1073,7 @@ class Shape:
     def get_random_tetro(self):
         if (self.blocks == []):
             self.blocks = list(range(0,self.tetro.get_tetro_len()))
-            random.seed(1)
+            random.seed(random_seed)
             random.shuffle(self.blocks)
             self.next_inx = self.blocks.pop()
         else:
