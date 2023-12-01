@@ -248,7 +248,7 @@ class Board(QWidget):
         if self.option == 4:
             self.game = Tetirs(self.p1_board,self.p1_next,self.p1_pocket,self.height(), observer,self.option-1,self.tetrominoe) # 수정 해야 하는 부분
         else:
-            self.game = Tetirs(self.p1_board,self.p1_next,self.p1_pocket,self.height(), observer,self.option,self.tetrominoe) # 수정 해야 하는 부분
+            self.game = Tetirs(self.p1_board,self.p1_next,self.p1_pocket,self.height(), observer,self.option,self.tetrominoe) # 수정 해야 하는 부분 # 변경
         self.game.user_signal.connect(self.show_p1_score)
 
         if option != 1:
@@ -413,7 +413,7 @@ class Ai_Move:
                     self.around_block = self.get_around_block()
                     
                     
-                    score = -5*self.height - 1*self.blank - 15*self.under_blank + self.del_score() + self.wall*6 + self.floor*10  + self.around_block*6
+                    score = -5*self.height - 1*self.blank - 5*self.under_blank + self.del_score() + self.wall*10 + self.floor*10  + self.around_block*10
                     
                     
                     
@@ -478,7 +478,7 @@ class Ai_Move:
         
     def del_score(self):
         if self.del_line == 1:
-            return 30
+            return 100
         elif self.del_line == 2:
             return 300
         elif self.del_line == 3:
@@ -630,6 +630,8 @@ class Tetirs(QWidget):
         self.next_lb = next_lb
         self.pocket_lb = pocket_lb
         
+        self.test = 0
+
         self.use_pocket = False
 
         self.finish_down_line = True # 한줄이 다 내려왔는지 확인하는 변수 
@@ -843,6 +845,7 @@ class Tetirs(QWidget):
                 self.attack_line_cnt += 1
 
         self.score += 100*(attack_dmg[self.attack_line_cnt+1])
+        
         self.user_signal.emit(self.score)
         self.attack(attack_dmg[self.attack_line_cnt]) 
         self.attack_line_cnt = 0
