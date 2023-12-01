@@ -19,6 +19,7 @@ class MainWindow(QMainWindow):
         
     
     def initUI(self):
+        
         self.setWindowTitle("Tetris")
         self.setGeometry(100, 100, 500, 400)
         self.center()
@@ -1072,7 +1073,7 @@ class Shape:
     def get_random_tetro(self):
         if (self.blocks == []):
             self.blocks = list(range(0,self.tetro.get_tetro_len()))
-            
+            random.seed(1)
             random.shuffle(self.blocks)
             self.next_inx = self.blocks.pop()
         else:
