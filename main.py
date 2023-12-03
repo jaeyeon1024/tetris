@@ -7,7 +7,8 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 
-random_seed = random.randint(0,1000000000)
+
+random_seed = time.time()
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -96,7 +97,7 @@ class MainWindow(QMainWindow):
             self.new_window.close()
         if not self.setting_window is None:
             self.setting_window.close()
-        print(self.tetrominoe.tetrominoe)
+        
         self.new_window = Board(option,self.tetrominoe)
         
         self.new_window.show()
@@ -188,6 +189,7 @@ class SettingWindow(QWidget):
 class Board(QWidget):
     def __init__(self,option,tetrominoe):
         super().__init__()
+        
         self.tetrominoe = tetrominoe
         self.initUI(option)
     def initUI(self,option):
@@ -612,7 +614,10 @@ class Tetirs(QWidget):
         self.tetrominoe = tetrominoe
         self.ai_move = Ai_Move()
 
+        global random_seed
+        random_seed = int(time.time())
         
+
     
         self.score = 0
 
@@ -715,8 +720,6 @@ class Tetirs(QWidget):
         
         colors = [Qt.red, Qt.green, Qt.blue, Qt.yellow, Qt.cyan, Qt.magenta, Qt.gray, Qt.darkRed, Qt.darkGreen, Qt.darkBlue, Qt.darkYellow, Qt.darkCyan, Qt.darkMagenta, Qt.darkGray, Qt.lightGray]
         
-        
-
         for i in range(height):
             
             for j in range(width):
@@ -728,9 +731,6 @@ class Tetirs(QWidget):
 
         painter.end()
     
-    
-        
-
     def timerEvent(self, event):
 
         if event.timerId() == self.timer.timerId():
@@ -750,9 +750,6 @@ class Tetirs(QWidget):
                 self.one_line_down()
                 pass
 
-        else:
-            super(Board, self).timerEvent(event)
-    
     def attacked(self,atk_dmg=0):
         self.attack_dmg = atk_dmg
         
@@ -773,8 +770,6 @@ class Tetirs(QWidget):
         
         self.cur_shape.get_next_inx()
         
-        
-
         if not self.check_put_block(5-(self.cur_shape.get_cur_max_x(self.cur_shape.get_cur_shape())//2) - 1,0, self.cur_shape.get_cur_shape()):
             print("game over")
             self.timer.stop()
@@ -784,9 +779,6 @@ class Tetirs(QWidget):
 
         self.cur_shape.curx = 5-(self.cur_shape.get_cur_max_x(self.cur_shape.get_cur_shape())//2) - 1
         self.cur_shape.cury = 0
-
-        ## 이 부분에서 ai로 값 전달
-        
 
         self.draw_falling()
         self.update()
@@ -1073,6 +1065,7 @@ class Shape:
     def get_random_tetro(self):
         if (self.blocks == []):
             self.blocks = list(range(0,self.tetro.get_tetro_len()))
+            
             random.seed(random_seed)
             random.shuffle(self.blocks)
             self.next_inx = self.blocks.pop()
@@ -1099,25 +1092,3 @@ if __name__ == "__main__":
     window.show()
     sys.exit(app.exec())
 
-'''
-
-드롭 만들기 V
-
-좌 우 드롭 포켓 교체 메소드 만들기 V
-
-랜덤으로 내리는거 테스트 V
-
-새로운 레이어 만들어서 그 위에 그리기 V
-for문 로테이트
-    for문으로 0부터 끝까지 다 돌면서 
-    각 위치의 가중치값 구하기
-가장 높았던 위치의 가중치값을 기준으로
-이동
-
-종료 했을 때 잘 종료 되게 하기 V
-
-점수 추가 V
-
-설정 
-
-'''
